@@ -1,0 +1,451 @@
+// Основание — схема данных.
+//
+// Neon Postgres: DATABASE_URL идёт через пулер (?pgbouncer=true&connection_limit=1),
+// DIRECT_URL — прямое подключение для миграций.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Человек ────────────────────────────────────────────────────────────────
+
+enum Rank {
+  NEOPHYTE // не прошёл Оснащение — Заветы закрыты
+  PREDTECHA // принял Договор Консенсуса
+  PROGRESSOR // инициирован в Домене (фаза Ордена)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id         String  @id @default(cuid())
+  telegramId BigInt  @unique
+  username   String?
+  firstName  String?
+  langCode   String?
+
+  rank Rank @default(NEOPHYTE)
+  role Role @default(USER)
+
+  /// Таймзона IANA. Без неё ритуальные окна бессмысленны.
+  tz String @default("Europe/Kyiv")
+
+  /// Момент завершения Оснащения. null — Заветы ещё закрыты.
+  oathAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  settings     Settings?
+  oath         OathAcceptance[]
+  shells       ShellState[]
+  acts         Act[]
+  blessings    Blessing[]
+  gifts        Gift[]
+  declarations Declaration[]
+  silences     Silence[]
+  fasts        FastPeriod[]
+  lapses       Lapse[]
+  reviews      ThesisReview[]
+  rollups      DailyRollup[]
+  outbox       OutboxMessage[]
+  sessions     Session[]
+
+  @@index([rank])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash  String   @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Settings {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Локальное время ритуальных окон, минуты от полуночи.
+  morningAt Int @default(420) // 07:00 — Благо Сна и Слово Дня
+  mindAt    Int @default(780) // 13:00 — напоминание Разума
+  eveningAt Int @default(1260) // 21:00 — Декларация на завтра
+  nightAt   Int @default(1350) // 22:30 — Благо Тела и закрытие дня
+
+  /// Тихие часы: приложение не имеет права быть источником стресса (Основа 4).
+  quietFrom Int @default(1380) // 23:00
+  quietTo   Int @default(390) //  06:30
+
+  /// Дни недели для Дней Очищения, 1 = понедельник. По умолчанию Пн и Пт.
+  fastWeekdays Int[] @default([1, 5])
+
+  /// Интенсивность: 0 — минимум, 1 — норма, 2 — полная.
+  intensity Int @default(1)
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Принятие каждой из 10 Основ отдельной записью.
+/// Запрет №1: Оснащение должно быть добровольным и сознательным — значит
+/// сознательность должна быть доказуема, а не выведена из одного нажатия.
+model OathAcceptance {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foundationNo Int
+  acceptedAt   DateTime @default(now())
+
+  @@unique([userId, foundationNo])
+}
+
+// ─── Канон ──────────────────────────────────────────────────────────────────
+
+enum CanonKind {
+  INDEX
+  DOGMA
+  FOUNDATION
+  COVENANT
+  ORDER
+  JOURNAL
+}
+
+model CanonDoc {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  kind     CanonKind
+  /// Порядковый номер внутри раздела: Основа 3 → 3, Завет 5 → 5.
+  order    Int
+  title    String
+  /// Исходный файл в хранилище — чтобы можно было выгрузить правки обратно.
+  sourcePath String
+  bodyMd   String
+  updatedAt DateTime @updatedAt
+
+  sections CanonSection[]
+  theses   Thesis[]
+
+  @@index([kind, order])
+}
+
+model CanonSection {
+  id      String @id @default(cuid())
+  docId   String
+  doc     CanonDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+  /// Якорь Obsidian — текст заголовка. По нему работают ссылки вида
+  /// «Основа 7. Замедление.md#Создание Сюжета».
+  anchor  String
+  heading String
+  level   Int
+  order   Int
+  bodyMd  String
+
+  @@unique([docId, anchor])
+  @@index([docId, order])
+}
+
+enum ThesisKind {
+  BELIEF // выделенное утверждение — убеждение
+  QUOTE // цитата из блока
+}
+
+/// Единица активного припоминания для Слова Дня.
+/// «Для того чтобы запомнить факты, нужно их активно припоминать» — Основа 6.
+model Thesis {
+  id     String     @id @default(cuid())
+  docId  String
+  doc    CanonDoc   @relation(fields: [docId], references: [id], onDelete: Cascade)
+  kind   ThesisKind
+  text   String
+  /// Хэш текста: делает повторный импорт идемпотентным.
+  fingerprint String @unique
+  active Boolean    @default(true)
+
+  reviews ThesisReview[]
+
+  @@index([docId])
+}
+
+/// SM-2-lite: состояние припоминания одного тезиса одним человеком.
+model ThesisReview {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thesisId String
+  thesis   Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  ease     Float    @default(2.5)
+  interval Int      @default(0)
+  reps     Int      @default(0)
+  lapses   Int      @default(0)
+  dueAt    DateTime @default(now())
+  lastAt   DateTime?
+
+  @@unique([userId, thesisId])
+  @@index([userId, dueAt])
+}
+
+// ─── Оболочки и акты ────────────────────────────────────────────────────────
+
+enum Shell {
+  BODY
+  MIND
+  SPIRIT
+}
+
+model ShellState {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shell  Shell
+
+  level     Float     @default(0)
+  lastActAt DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, shell])
+}
+
+/// Завет АКТ: акт применения оболочки.
+model Act {
+  id      String   @id @default(cuid())
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shell   Shell
+  minutes Int?
+  /// Для Разума — тезисное воспроизводство своими словами.
+  note    String?
+  doneAt  DateTime @default(now())
+
+  @@index([userId, doneAt])
+}
+
+// ─── Завет БЛАГ ─────────────────────────────────────────────────────────────
+
+enum BlessingKind {
+  SLEEP
+  WATER
+  FOOD
+  WARMTH
+  BODY
+}
+
+model Blessing {
+  id       String       @id @default(cuid())
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blessing BlessingKind
+  at       DateTime     @default(now())
+
+  @@index([userId, at])
+}
+
+// ─── Завет ДАР ──────────────────────────────────────────────────────────────
+
+enum GiftResource {
+  TIME
+  INFO
+  MONEY
+  EFFORT
+  RESPECT
+  THING
+}
+
+/// «Не хвастайся своими благими деяниями» — записи приватны всегда.
+/// В приложении у Дара нет ни одной кнопки шеринга или экспорта.
+model Gift {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource  GiftResource
+  /// Кому — свободной строкой; настоящие имена не требуются.
+  recipient String?
+  note      String?
+  at        DateTime     @default(now())
+
+  @@index([userId, at])
+}
+
+// ─── Завет ПУТЬ ─────────────────────────────────────────────────────────────
+
+/// «Никому не рассказывайте о своих намерениях» — Декларация не расшаривается.
+model Declaration {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Локальная дата, на которую составлен план.
+  forDate  DateTime @db.Date
+  /// [{ text, done, doneAt }] — план на завтра.
+  items    Json     @default("[]")
+  /// Догма Следа: что замечено при взгляде назад.
+  reflection String?
+  createdAt DateTime @default(now())
+  closedAt  DateTime?
+
+  @@unique([userId, forDate])
+  @@index([userId, forDate])
+}
+
+// ─── Завет ДУХ ──────────────────────────────────────────────────────────────
+
+enum SilenceStage {
+  PLOT // Создание Сюжета
+  INSIGHT // Поток Озарения
+  BOREDOM // Рождение Скуки
+}
+
+model Silence {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt DateTime
+  minutes   Int
+  stage     SilenceStage?
+  insights  String?
+
+  @@index([userId, startedAt])
+}
+
+// ─── Завет ПОСТ ─────────────────────────────────────────────────────────────
+
+enum FastKind {
+  CLEANSING_DAY // День Очищения — сутки
+  REDEMPTION_MONTH // Месяц Искупления — 1–31 декабря
+}
+
+enum FastStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
+model FastPeriod {
+  id     String     @id @default(cuid())
+  userId String
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind   FastKind
+  status FastStatus @default(PLANNED)
+
+  startAt DateTime
+  endAt   DateTime
+
+  /// Окно приёма пищи, минуты от полуночи. По умолчанию 11:00–19:00.
+  eatFrom Int @default(660)
+  eatTo   Int @default(1140)
+
+  /// Итоги — по шаблону отчёта «Месяц искупления 2024».
+  summary String?
+
+  logs FastLog[]
+
+  @@index([userId, startAt])
+}
+
+model FastLog {
+  id     String     @id @default(cuid())
+  fastId String
+  fast   FastPeriod @relation(fields: [fastId], references: [id], onDelete: Cascade)
+  date   DateTime   @db.Date
+  /// Запрет на вкусную еду соблюдён.
+  foodOk Boolean    @default(true)
+  /// Запрет на развлекательную информацию соблюдён.
+  infoOk Boolean    @default(true)
+  note   String?
+
+  @@unique([fastId, date])
+}
+
+// ─── Срыв ───────────────────────────────────────────────────────────────────
+
+enum LapseCause {
+  THOUGHTS
+  EMOTIONS
+  SITUATION
+}
+
+/// Основа 5: «Если я сорвался... это не значит, что я плохой. Это значит, что
+/// я плохо проконтролировал мысли, эмоции или ситуацию. Мой опыт вырос.»
+/// Поэтому срыв фиксируется как опыт и НЕ отнимает уровень.
+model Lapse {
+  id     String     @id @default(cuid())
+  userId String
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cause  LapseCause
+  note   String?
+  at     DateTime   @default(now())
+
+  @@index([userId, at])
+}
+
+// ─── Свиток ─────────────────────────────────────────────────────────────────
+
+/// Закешированные показатели за локальный день: Свиток и графики не должны
+/// пересчитывать всю историю.
+model DailyRollup {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   DateTime @db.Date
+
+  sila Float
+  bol  Float
+
+  bodyLevel   Float
+  mindLevel   Float
+  spiritLevel Float
+
+  acts             Int @default(0)
+  blessings        Int @default(0)
+  declarationDone  Int @default(0)
+  declarationTotal Int @default(0)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ─── Исходящие уведомления ──────────────────────────────────────────────────
+
+enum RitualKind {
+  MORNING_BLESSING
+  WORD_OF_DAY
+  MIND_REMINDER
+  EVENING_DECLARATION
+  NIGHT_CLOSING
+  GIFT_WEEKLY
+  FAST_OFFER
+  FAST_JOURNAL
+  SCROLL_WEEKLY
+}
+
+/// Очередь вместо BullMQ: на Vercel нет long-running воркера.
+/// dedupeKey = userId:kind:локальнаяДата — гарантия, что ритуал не придёт
+/// дважды при перекрывающихся тиках cron.
+model OutboxMessage {
+  id     String     @id @default(cuid())
+  userId String
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind   RitualKind
+
+  dedupeKey String @unique
+
+  scheduledFor DateTime
+  sentAt       DateTime?
+  attempts     Int       @default(0)
+  lastError    String?
+  payload      Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([sentAt, scheduledFor])
+}

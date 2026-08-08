@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+
+/*
+  ОСНОВАНИЕ — палитра.
+
+  Ровно два семейства: золото и нейтральные. Никаких вторичных акцентов —
+  иначе разрушится метафора светильника: Сила есть свет, Боль есть темнота
+  вокруг. Боль не красная и не «аварийная»: в Догмате боль не зло, а инструмент
+  Замысла. Она пепельная и просто гасит золото.
+*/
+
+@theme {
+  --color-obsidian: #07070a;
+  --color-coal: #101017;
+  --color-coal-lift: #17171f;
+  --color-ash: #3a3a44;
+  --color-patina: #4a3f22;
+  --color-gold-600: #a8842c;
+  --color-gold-400: #d9b44a;
+  --color-gold-200: #f0d77e;
+  --color-gold-50: #faf0ce;
+  --color-bone: #e8e4d9;
+
+  --font-canon: 'Old Standard TT', Georgia, serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+:root {
+  --tq-gold-200: var(--color-gold-200);
+  --tq-gold-400: var(--color-gold-400);
+  --tq-gold-600: var(--color-gold-600);
+  --tq-core-hot: var(--color-gold-50);
+  --tq-glow: var(--color-gold-400);
+  --tq-patina: var(--color-patina);
+  --tq-outline: #5a4d2b;
+  --tq-ring: #2a2620;
+  --tq-ring-thin: #4a3f22;
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-obsidian);
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Триквестр ───────────────────────────────────────────────────────────── */
+
+.tq-fill {
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tq-core {
+  transition: opacity 900ms ease;
+}
+
+@keyframes tq-breathe {
+  0%,
+  100% {
+    opacity: var(--tq-breathe-high);
+  }
+  50% {
+    opacity: var(--tq-breathe-low);
+  }
+}
+
+.tq-bloom {
+  animation: tq-breathe 6s ease-in-out infinite;
+}
+
+@keyframes tq-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Тишина: остаётся только медленно вращающийся контур. */
+.tq-knot[data-spin] {
+  animation: tq-spin 120s linear infinite;
+  transform-origin: center;
+}
+
+/*
+  Режим Поста: интерфейс намеренно обесцвечивается до костяного монохрома.
+  Приложение снижает собственную сенсорную награду, пока идёт Завет ПОСТ,
+  и возвращает золото по завершении. Это не баг вида — это и есть завет.
+*/
+svg[data-fasting] {
+  --tq-gold-200: #d8d3c4;
+  --tq-gold-400: #a8a396;
+  --tq-gold-600: #6e6a60;
+  --tq-core-hot: #eae6da;
+  --tq-glow: #8e8a80;
+  --tq-patina: #34322c;
+  --tq-outline: #4a4740;
+  --tq-ring-thin: #3a3832;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-bloom,
+  .tq-knot[data-spin] {
+    animation: none;
+  }
+  .tq-fill,
+  .tq-core {
+    transition: none;
+  }
+}
