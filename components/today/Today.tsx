@@ -1,10 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
+import type { RitualCounts } from '@/lib/core/rituals';
 import { SHELL_LABEL, SHELLS, type Shell } from '@/lib/core/shells';
 import type { CoreState } from '@/lib/core/state';
+import { RITUAL_SECTIONS } from '@/lib/sections';
 
 /**
  * Боевой экран: Триквестр на настоящих уровнях и два Завета, которые
@@ -46,7 +49,34 @@ const ACT_HINT: Record<Shell, string> = {
   SPIRIT: 'весь день: одно благое дело',
 };
 
-export function Today({ initial, name }: { initial: CoreState; name: string | null }) {
+/**
+ * Состояние Завета одной строкой. Ни одного числа сверх того, что отвечает на
+ * вопрос «сделано ли сегодня»: главный экран не заменяет собой ритуал.
+ */
+function ritualStatus(key: string, counts: RitualCounts): string {
+  switch (key) {
+    case 'put':
+      return counts.put.exists
+        ? `${counts.put.done} из ${counts.put.total}`
+        : 'Декларации нет';
+    case 'duh':
+      return counts.duh.practiced ? `${counts.duh.minutes} мин` : 'сегодня не было';
+    case 'dar':
+      return counts.dar.week > 0 ? `на неделе ${counts.dar.week}` : 'норма не закрыта';
+    default:
+      return '';
+  }
+}
+
+export function Today({
+  initial,
+  rituals,
+  name,
+}: {
+  initial: CoreState;
+  rituals: RitualCounts;
+  name: string | null;
+}) {
   const [state, setState] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [spoken, setSpoken] = useState<string | null>(null);
@@ -184,6 +214,32 @@ export function Today({ initial, name }: { initial: CoreState; name: string | nu
           Фразу произносят вслух. Уровень поднимает новый вид Блага за сутки, а не
           количество касаний.
         </p>
+      </section>
+
+      {/* Заветы, у которых свой экран. Они не вкладки: вкладка зовёт зайти,
+          а ритуал приходит в свой час — и заканчивается. */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[0.62rem] tracking-[0.22em] text-mute">ЗАВЕТЫ ДНЯ</h2>
+        <ul className="flex flex-col">
+          {RITUAL_SECTIONS.map((section) => (
+            <li key={section.key} className="border-b border-warm-line">
+              <Link
+                href={section.href}
+                className="flex items-baseline justify-between gap-3 py-2.5 transition-colors hover:bg-coal/60"
+              >
+                <span>
+                  <span className="text-bone" style={{ fontFamily: 'var(--font-display)' }}>
+                    {section.title}
+                  </span>
+                  <span className="ml-2 text-[0.62rem] text-mute">{section.source}</span>
+                </span>
+                <span className="shrink-0 text-[0.62rem] tabular-nums text-gold-600">
+                  {ritualStatus(section.key, rituals)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {error && (

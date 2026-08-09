@@ -18,19 +18,18 @@ const MORE = { href: '/razdely', title: 'Разделы' };
 export function AppNav() {
   const pathname = usePathname();
 
-  // На ритуальных экранах панель мешает: Оснащение и вход проходят целиком.
-  if (pathname.startsWith('/osnashenie') || pathname.startsWith('/vhod')) return null;
+  // На ритуальных экранах панель мешает: Оснащение, вход и Тишина проходят
+  // целиком. У Тишины причина буквальная — «без устройств, без звуков»: экран
+  // гаснет, и светящаяся панель внизу разрушила бы замедление.
+  if (
+    pathname.startsWith('/osnashenie') ||
+    pathname.startsWith('/vhod') ||
+    pathname.startsWith('/tishina')
+  ) {
+    return null;
+  }
 
-    // Акт и Благо живут на экране Триквестра — отдельными вкладками они
-  // дублировали бы одну и ту же ссылку.
-  const seen = new Set<string>();
-  const items = [
-    ...NAV_SECTIONS.filter((s) => !seen.has(s.href) && seen.add(s.href)).map((s) => ({
-      href: s.href,
-      title: s.title,
-    })),
-    MORE,
-  ];
+  const items = [...NAV_SECTIONS.map((s) => ({ href: s.href, title: s.title })), MORE];
 
   return (
     <nav className="sticky bottom-0 border-t border-warm-line bg-obsidian/95 backdrop-blur">

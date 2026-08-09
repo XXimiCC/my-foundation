@@ -8,6 +8,16 @@
 
 export type SectionState = 'готово' | 'в работе' | 'впереди';
 
+/**
+ * Где у раздела вход.
+ *
+ * Панель намеренно бедная: в неё попадают только постоянные места. Заветы
+ * живут на главном экране — они ритуалы дня, а не вкладки, и сессия должна
+ * заканчиваться, когда ритуал выполнен. Оснащение не попадает никуда: оно
+ * одноразовое, зовёт с полигона и после прохождения ведёт редиректом на «/».
+ */
+export type SectionEntry = 'панель' | 'ритуал' | 'нет';
+
 export interface Section {
   key: string;
   title: string;
@@ -15,6 +25,7 @@ export interface Section {
   purpose: string;
   href: string | null;
   state: SectionState;
+  entry: SectionEntry;
   /** Завет или Основа, из которых раздел вырос. */
   source?: string;
 }
@@ -26,6 +37,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Сила, Боль и слабое звено. Прибор, а не картинка.',
     href: '/',
     state: 'готово',
+    entry: 'панель',
     source: 'Основа 3. Триединение',
   },
   {
@@ -34,6 +46,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Догмат, 10 Основ и 6 Заветов целиком, со ссылками и якорями.',
     href: '/kanon',
     state: 'готово',
+    entry: 'панель',
   },
   {
     key: 'osnashenie',
@@ -41,6 +54,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Принятие Договора Консенсуса. До него Заветы закрыты.',
     href: '/osnashenie',
     state: 'готово',
+    entry: 'нет',
     source: '02 Декларация, Оснащение',
   },
   {
@@ -49,6 +63,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Акты применения тела, разума и духа. Уровни растут и распадаются.',
     href: '/',
     state: 'готово',
+    entry: 'нет',
     source: 'Завет 1. АКТ',
   },
   {
@@ -57,6 +72,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Пять Благ с ритуальными фразами: Сон, Вода, Еда, Тепло, Тело.',
     href: '/',
     state: 'готово',
+    entry: 'нет',
     source: 'Завет 3. БЛАГ',
   },
   {
@@ -65,14 +81,16 @@ export const SECTIONS: Section[] = [
     purpose: 'Вечерняя Декларация на завтра, её выполнение и След пройденного.',
     href: '/put',
     state: 'готово',
+    entry: 'ритуал',
     source: 'Завет 5. ПУТЬ',
   },
   {
     key: 'duh',
     title: 'Тишина',
-    purpose: 'Таймер замедления: Сюжет, Озарение, Скука.',
-    href: null,
-    state: 'впереди',
+    purpose: 'Ежедневное замедление: Сюжет, Озарение, Скука.',
+    href: '/tishina',
+    state: 'готово',
+    entry: 'ритуал',
     source: 'Завет 6. ДУХ',
   },
   {
@@ -81,14 +99,16 @@ export const SECTIONS: Section[] = [
     purpose: 'Дни Очищения и Месяц Искупления с окном еды и дневником.',
     href: null,
     state: 'впереди',
+    entry: 'нет',
     source: 'Завет 2. ПОСТ',
   },
   {
     key: 'dar',
     title: 'Дар',
     purpose: 'Недельный журнал даров. Приватный: хвастаться нельзя.',
-    href: null,
-    state: 'впереди',
+    href: '/dar',
+    state: 'готово',
+    entry: 'ритуал',
     source: 'Завет 4. ДАР',
   },
   {
@@ -97,6 +117,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Припоминание 418 тезисов Канона с нарастающими интервалами.',
     href: null,
     state: 'впереди',
+    entry: 'нет',
     source: 'Основа 6. Познание',
   },
   {
@@ -105,6 +126,7 @@ export const SECTIONS: Section[] = [
     purpose: 'Ретроспективы недели, месяца и года. Срывы — как опыт.',
     href: null,
     state: 'впереди',
+    entry: 'нет',
     source: 'Догма Следа',
   },
   {
@@ -113,14 +135,29 @@ export const SECTIONS: Section[] = [
     purpose: 'Домены, гости и братья. Вторая очередь целиком.',
     href: null,
     state: 'впереди',
+    entry: 'нет',
     source: 'Орден Основания',
   },
 ];
 
-/** Разделы для нижней панели: только то, куда действительно можно перейти. */
-export const NAV_SECTIONS = SECTIONS.filter(
-  (s): s is Section & { href: string } => s.state === 'готово' && s.href !== null,
-);
+type Reachable = Section & { href: string };
+
+function reachable(entry: SectionEntry): Reachable[] {
+  return SECTIONS.filter(
+    (s): s is Reachable => s.state === 'готово' && s.href !== null && s.entry === entry,
+  );
+}
+
+/**
+ * Разделы нижней панели. Их намеренно мало: панель не должна приглашать к
+ * блужданию. Ритуалы сюда не попадают — семь вкладок не помещаются на экране
+ * телефона, и это не вопрос вёрстки: вкладка зовёт зайти, а ритуал должен
+ * звать в свой час.
+ */
+export const NAV_SECTIONS = reachable('панель');
+
+/** Заветы дня — входы с главного экрана. */
+export const RITUAL_SECTIONS = reachable('ритуал');
 
 export function countByState(state: SectionState): number {
   return SECTIONS.filter((s) => s.state === state).length;

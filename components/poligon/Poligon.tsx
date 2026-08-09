@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
@@ -78,7 +79,7 @@ export function Poligon() {
 
   return (
     <main className="mx-auto flex h-full max-w-md flex-col gap-3 px-5 py-4">
-      {/* Переходы живут в нижней панели — в шапке они дублировались. */}
+      {/* Переходы живут в нижней панели и под фигурой — в шапке они дублировались. */}
       <header className="text-center">
         <h1
           className="text-xl tracking-[0.4em] text-gold-200"
@@ -155,6 +156,16 @@ export function Poligon() {
       </section>
 
       <section className="flex shrink-0 flex-col items-center gap-2">
+        {/* Единственный вход в Оснащение. В панели его больше нет: пройденное
+            один раз, оно ведёт редиректом на главный экран, и вкладка стояла
+            бы там мёртвой. А зовёт оно ровно отсюда — с полигона. */}
+        <Link
+          href="/osnashenie"
+          className="rounded border border-gold-600/60 px-4 py-2 text-[0.62rem] tracking-[0.2em] text-gold-200 transition-colors hover:bg-gold-600/15"
+        >
+          ПРИНЯТЬ ДОГОВОР
+        </Link>
+
         <div className="flex justify-center gap-2">
           <Toggle active={fasting} onClick={() => setFasting((v) => !v)}>
             ПОСТ

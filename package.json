@@ -1,6 +1,6 @@
 {
   "name": "osnovanie",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Основание — приложение для вживления Философии Основания",
   "scripts": {
@@ -22,7 +22,9 @@
     "shot:osnashenie": "tsx scripts/shot-osnashenie.mts",
     "check:zavety": "tsx scripts/check-zavety.mts",
     "check:put": "tsx scripts/check-put.mts",
-    "check:sled": "tsx scripts/check-sled.mts"
+    "check:sled": "tsx scripts/check-sled.mts",
+    "check:duhdar": "tsx scripts/check-duh-dar.mts",
+    "check:tishina": "tsx scripts/check-tishina.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

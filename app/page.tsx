@@ -1,6 +1,7 @@
 import { Poligon } from '@/components/poligon/Poligon';
 import { Today } from '@/components/today/Today';
 import { currentUser } from '@/lib/auth/current';
+import { loadRituals } from '@/lib/core/rituals';
 import { loadState } from '@/lib/core/state';
 import { prisma } from '@/lib/db';
 
@@ -19,6 +20,13 @@ export default async function HomePage() {
 
   if (!user?.oathAt) return <Poligon />;
 
-  const state = await loadState(prisma, user.id, user.tz);
-  return <Today initial={state} name={user.firstName ?? user.username} />;
+  const now = new Date();
+  const [state, rituals] = await Promise.all([
+    loadState(prisma, user.id, user.tz, now),
+    loadRituals(prisma, user.id, user.tz, now),
+  ]);
+
+  return (
+    <Today initial={state} rituals={rituals} name={user.firstName ?? user.username} />
+  );
 }

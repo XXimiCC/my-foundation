@@ -20,7 +20,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    // Скрипт Telegram выполняется до гидратации и дописывает в <html> свои
+    // переменные вьюпорта. React видит расхождение с серверной разметкой и
+    // ругается в консоль у каждого, кто открыл приложение из Telegram.
+    // Гасим предупреждение точечно на этом узле: атрибуты правит не наш код.
+    <html lang="ru" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
