@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
+import { FastingSkin } from '@/components/system/FastingSkin';
 import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
 import type { RitualCounts } from '@/lib/core/rituals';
@@ -63,6 +64,10 @@ function ritualStatus(key: string, counts: RitualCounts): string {
       return counts.duh.practiced ? `${counts.duh.minutes} мин` : 'сегодня не было';
     case 'dar':
       return counts.dar.week > 0 ? `на неделе ${counts.dar.week}` : 'норма не закрыта';
+    case 'post':
+      return counts.post.active
+        ? `день ${counts.post.day} из ${counts.post.total}`
+        : 'не идёт';
     default:
       return '';
   }
@@ -105,6 +110,9 @@ export function Today({
 
   return (
     <main className="mx-auto flex h-full max-w-md flex-col gap-4 overflow-y-auto px-5 py-4">
+      {/* Пока идёт пост, интерфейс обесцвечен: приложение снижает собственную
+          сенсорную награду наравне с прочими быстрыми удовольствиями. */}
+      <FastingSkin active={rituals.post.active} />
       <header className="text-center">
         <h1
           className="text-xl tracking-[0.4em] text-gold-200"
@@ -118,6 +126,7 @@ export function Today({
       <Triquetra
         levels={state.levels}
         sila={state.sila}
+        fasting={rituals.post.active}
         highlight={state.weakest}
         readouts={{
           left: { label: 'СИЛА', value: state.sila.toFixed(0), tone: 'gold' },

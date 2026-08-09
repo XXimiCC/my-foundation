@@ -96,10 +96,10 @@ export const SECTIONS: Section[] = [
   {
     key: 'post',
     title: 'Пост',
-    purpose: 'Дни Очищения и Месяц Искупления с окном еды и дневником.',
-    href: null,
-    state: 'впереди',
-    entry: 'нет',
+    purpose: 'Дни Очищения и Месяц Искупления: два запрета, окно еды, дневник.',
+    href: '/post',
+    state: 'готово',
+    entry: 'ритуал',
     source: 'Завет 2. ПОСТ',
   },
   {

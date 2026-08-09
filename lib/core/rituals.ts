@@ -10,7 +10,8 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { startOfLocalWeek } from './dar';
-import { dateFromKey, localDateKey, progressOf, readItems } from './put';
+import { dayNumber } from './post';
+import { dateFromKey, localDateKey, progressOf, readItems, shiftKey } from './put';
 import { startOfLocalDay } from './state';
 import { MIN_MINUTES } from './duh';
 
@@ -18,6 +19,8 @@ export interface RitualCounts {
   put: { exists: boolean; done: number; total: number };
   duh: { practiced: boolean; minutes: number };
   dar: { week: number };
+  /** Идущий пост. Пока он идёт, интерфейс обесцвечивается. */
+  post: { active: boolean; day: number; total: number };
 }
 
 export async function loadRituals(
@@ -27,8 +30,9 @@ export async function loadRituals(
   now = new Date(),
 ): Promise<RitualCounts> {
   const dayStart = startOfLocalDay(now, tz);
+  const todayKey = localDateKey(now, tz);
 
-  const [declaration, silences, gifts] = await Promise.all([
+  const [declaration, silences, gifts, fast] = await Promise.all([
     prisma.declaration.findUnique({
       where: {
         userId_forDate: { userId, forDate: dateFromKey(localDateKey(now, tz)) },
@@ -40,6 +44,10 @@ export async function loadRituals(
       select: { minutes: true },
     }),
     prisma.gift.count({ where: { userId, at: { gte: startOfLocalWeek(now, tz) } } }),
+    prisma.fastPeriod.findFirst({
+      where: { userId, startAt: { lte: now }, endAt: { gt: now } },
+      select: { startAt: true, endAt: true },
+    }),
   ]);
 
   const items = readItems(declaration?.items);
@@ -51,5 +59,13 @@ export async function loadRituals(
       minutes: silences.reduce((acc, s) => acc + s.minutes, 0),
     },
     dar: { week: gifts },
+    post: fast
+      ? {
+          active: true,
+          day: dayNumber(localDateKey(fast.startAt, tz), todayKey),
+          // Конец — полночь после последних суток поста.
+          total: dayNumber(localDateKey(fast.startAt, tz), shiftKey(localDateKey(fast.endAt, tz), -1)),
+        }
+      : { active: false, day: 0, total: 0 },
   };
 }
