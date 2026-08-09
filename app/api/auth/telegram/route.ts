@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     },
   });
 
-  response.cookies.set(ACCESS_COOKIE, access, cookieOptions(ACCESS_TTL_SEC));
-  response.cookies.set(REFRESH_COOKIE, refresh, cookieOptions(REFRESH_TTL_SEC));
+  response.cookies.set(ACCESS_COOKIE, access, cookieOptions(ACCESS_TTL_SEC, request.url));
+  response.cookies.set(REFRESH_COOKIE, refresh, cookieOptions(REFRESH_TTL_SEC, request.url));
   return response;
 }

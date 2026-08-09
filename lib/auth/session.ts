@@ -180,13 +180,24 @@ export function sameToken(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-/** Параметры куки: SameSite=None нужен, потому что Mini App открыт во фрейме. */
-export function cookieOptions(maxAgeSec: number) {
-  const production = process.env.NODE_ENV === 'production';
+/**
+ * Параметры куки.
+ *
+ * Флаги следуют схеме запроса, а не режиму сборки: по HTTPS нужен
+ * SameSite=None, иначе кука не дойдёт до Mini App, открытого во фрейме
+ * Telegram. Но SameSite=None требует Secure, а Secure-кука по обычному HTTP
+ * ставится и никогда не возвращается — локальная проверка молча теряла
+ * сессию именно так.
+ */
+export function cookieOptions(maxAgeSec: number, requestUrl?: string) {
+  const secure = requestUrl
+    ? requestUrl.startsWith('https:')
+    : process.env.NODE_ENV === 'production';
+
   return {
     httpOnly: true,
-    secure: production,
-    sameSite: production ? ('none' as const) : ('lax' as const),
+    secure,
+    sameSite: secure ? ('none' as const) : ('lax' as const),
     path: '/',
     maxAge: maxAgeSec,
   };

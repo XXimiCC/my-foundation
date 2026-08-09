@@ -33,8 +33,8 @@ export async function POST(request: Request) {
   if (!rotated) return NextResponse.json({ error: 'сессия недействительна' }, { status: 401 });
 
   const response = NextResponse.json({ accessToken: rotated.access });
-  response.cookies.set(ACCESS_COOKIE, rotated.access, cookieOptions(ACCESS_TTL_SEC));
-  response.cookies.set(REFRESH_COOKIE, rotated.refresh, cookieOptions(REFRESH_TTL_SEC));
+  response.cookies.set(ACCESS_COOKIE, rotated.access, cookieOptions(ACCESS_TTL_SEC, request.url));
+  response.cookies.set(REFRESH_COOKIE, rotated.refresh, cookieOptions(REFRESH_TTL_SEC, request.url));
   return response;
 }
 
@@ -50,7 +50,7 @@ export async function DELETE(request: Request) {
   if (refresh) await revokeSession(refresh);
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(ACCESS_COOKIE, '', cookieOptions(0));
-  response.cookies.set(REFRESH_COOKIE, '', cookieOptions(0));
+  response.cookies.set(ACCESS_COOKIE, '', cookieOptions(0, request.url));
+  response.cookies.set(REFRESH_COOKIE, '', cookieOptions(0, request.url));
   return response;
 }

@@ -21,7 +21,16 @@ export function AppNav() {
   // На ритуальных экранах панель мешает: Оснащение и вход проходят целиком.
   if (pathname.startsWith('/osnashenie') || pathname.startsWith('/vhod')) return null;
 
-  const items = [...NAV_SECTIONS.map((s) => ({ href: s.href, title: s.title })), MORE];
+    // Акт и Благо живут на экране Триквестра — отдельными вкладками они
+  // дублировали бы одну и ту же ссылку.
+  const seen = new Set<string>();
+  const items = [
+    ...NAV_SECTIONS.filter((s) => !seen.has(s.href) && seen.add(s.href)).map((s) => ({
+      href: s.href,
+      title: s.title,
+    })),
+    MORE,
+  ];
 
   return (
     <nav className="sticky bottom-0 border-t border-warm-line bg-obsidian/95 backdrop-blur">
