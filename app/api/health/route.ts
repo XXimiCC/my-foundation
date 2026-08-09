@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeAppUrl } from '@/lib/config';
 import { prisma } from '@/lib/db';
 
 /**
@@ -14,15 +15,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const startedAt = Date.now();
+  const appUrlCheck = normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL);
 
   const build = {
     region: process.env.VERCEL_REGION ?? 'local',
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev',
     env: process.env.VERCEL_ENV ?? 'development',
     // Переменная и так уходит в браузерный бандл — секретом не является.
-    // Здесь она нужна, чтобы расхождение конфигурации ловилось запросом:
-    // неверный адрес молча ломает ссылки бота на Mini App.
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+    // Показываем и исходное значение, и нормализованное: чинить расхождение
+    // нужно в конфигурации, а не полагаться на то, что код его переварил.
+    appUrl: appUrlCheck.url,
+    appUrlRaw: process.env.NEXT_PUBLIC_APP_URL ?? null,
+    appUrlWarning: appUrlCheck.warning,
   };
 
   try {
