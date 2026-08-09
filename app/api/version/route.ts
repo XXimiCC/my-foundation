@@ -12,6 +12,7 @@ export async function GET() {
   return NextResponse.json(
     {
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev',
+      builtAt: process.env.NEXT_PUBLIC_BUILD_TIME ?? null,
       env: process.env.VERCEL_ENV ?? 'development',
     },
     { headers: { 'cache-control': 'no-store' } },

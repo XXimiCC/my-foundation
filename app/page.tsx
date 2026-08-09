@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
 import {
   SHELL_LABEL,
@@ -159,25 +160,28 @@ export default function Page() {
         ))}
       </section>
 
-      <section className="flex shrink-0 justify-center gap-2">
-        <Toggle active={fasting} onClick={() => setFasting((v) => !v)}>
-          ПОСТ
-        </Toggle>
-        <Toggle active={silence} onClick={() => setSilence((v) => !v)}>
-          ТИШИНА
-        </Toggle>
-        <Toggle
-          active={false}
-          onClick={() =>
-            setState({
-              BODY: { level: 92, lastActAt: new Date() },
-              MIND: { level: 90, lastActAt: new Date() },
-              SPIRIT: { level: 88, lastActAt: new Date() },
-            })
-          }
-        >
-          ТРИЕДИНЕНИЕ
-        </Toggle>
+      <section className="flex shrink-0 flex-col items-center gap-2">
+        <div className="flex justify-center gap-2">
+          <Toggle active={fasting} onClick={() => setFasting((v) => !v)}>
+            ПОСТ
+          </Toggle>
+          <Toggle active={silence} onClick={() => setSilence((v) => !v)}>
+            ТИШИНА
+          </Toggle>
+          <Toggle
+            active={false}
+            onClick={() =>
+              setState({
+                BODY: { level: 92, lastActAt: new Date() },
+                MIND: { level: 90, lastActAt: new Date() },
+                SPIRIT: { level: 88, lastActAt: new Date() },
+              })
+            }
+          >
+            ТРИЕДИНЕНИЕ
+          </Toggle>
+        </div>
+        <VersionBadge />
       </section>
     </main>
   );

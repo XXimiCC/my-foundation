@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { VersionBadge } from '@/components/system/VersionBadge';
 import { prisma } from '@/lib/db';
 import { docHref } from '@/lib/canon/links';
 
@@ -117,9 +118,12 @@ export default async function KanonPage() {
         })}
       </div>
 
-      <p className="mt-10 text-center text-xs text-mute">
-        Число справа — сколько тезисов документа участвует в Слове Дня.
-      </p>
+      <footer className="mt-10 flex flex-col items-center gap-3">
+        <p className="text-center text-xs text-mute">
+          Число справа — сколько тезисов документа участвует в Слове Дня.
+        </p>
+        <VersionBadge />
+      </footer>
     </main>
   );
 }
