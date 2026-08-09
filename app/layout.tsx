@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
+import { TelegramInit } from '@/components/system/TelegramInit';
+import { VersionGuard } from '@/components/system/VersionGuard';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,7 +28,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* Скрипт Telegram обязан выполниться до нашего кода: без него
+            window.Telegram отсутствует и вход внутри Telegram не сработает. */}
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <TelegramInit />
+        <VersionGuard />
+        {children}
+      </body>
     </html>
   );
 }
