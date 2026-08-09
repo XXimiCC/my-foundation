@@ -66,7 +66,21 @@ async function main() {
     body: JSON.stringify({ source: 'miniapp', initData }),
   });
   const session = await login.json();
-  check('вход по подлинной initData', login.ok && Boolean(session.accessToken));
+  check(
+    'вход по подлинной initData',
+    login.ok && Boolean(session.accessToken),
+    login.ok ? '' : `${login.status} ${JSON.stringify(session)}`,
+  );
+
+  if (!login.ok) {
+    console.log(
+      '\n  Подсказка: подпись собирается токеном из локального окружения.\n' +
+        '  Против прода она и должна отвергаться — там другой бот.\n' +
+        '  Проверять сквозной ритуал на проде нужно токеном боевого бота.\n',
+    );
+    await prisma.user.deleteMany({ where: { telegramId: BigInt(TEST_ID) } });
+    return;
+  }
   check('новый человек — Неофит', session.user?.rank === 'NEOPHYTE');
 
   const auth = { authorization: `Bearer ${session.accessToken}`, 'content-type': 'application/json' };
