@@ -5,7 +5,13 @@ import { CanonMarkdown } from '@/components/canon/CanonMarkdown';
 import { anchorId, docHref } from '@/lib/canon/links';
 import { prisma } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+// Все 22 документа известны заранее — их незачем собирать по запросу.
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const docs = await prisma.canonDoc.findMany({ select: { slug: true } });
+  return docs.map((d) => ({ slug: d.slug }));
+}
 
 interface Params {
   params: Promise<{ slug: string }>;

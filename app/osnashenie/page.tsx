@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { OsnashenieRitual } from '@/components/osnashenie/OsnashenieRitual';
 import { currentUser } from '@/lib/auth/current';
+import { pickTheses } from '@/lib/canon/relevance';
 import { prisma } from '@/lib/db';
 
 export const metadata: Metadata = {
@@ -28,10 +29,11 @@ export default async function OsnasheniePage() {
         order: true,
         title: true,
         slug: true,
+        // Берём все и отбираем по теме: первые по порядку могут оказаться из
+        // отступления. У «Благодарения» так попадал разбор турбо-режима.
         theses: {
           where: { active: true, kind: 'BELIEF' },
           orderBy: { id: 'asc' },
-          take: 3,
           select: { text: true },
         },
       },
@@ -48,7 +50,7 @@ export default async function OsnasheniePage() {
         no: d.order,
         title: d.title.replace(/^Основа\s+\d+\.\s*/, ''),
         slug: d.slug,
-        theses: d.theses.map((t) => t.text),
+        theses: pickTheses(d.theses, d.slug, d.title, 3).map((t) => t.text),
       }))}
       alreadyAccepted={accepted.map((a) => a.foundationNo)}
     />
