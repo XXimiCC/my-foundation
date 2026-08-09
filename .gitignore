@@ -4,6 +4,10 @@ out/
 build/
 .env
 .env*.local
+
+# Снимки расширения Local History для VS Code. Оно копирует и .env,
+# поэтому папка содержит секреты открытым текстом и не должна попадать в git.
+.history/
 next-env.d.ts
 *.tsbuildinfo
 .vercel
