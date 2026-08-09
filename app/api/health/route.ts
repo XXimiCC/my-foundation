@@ -19,6 +19,10 @@ export async function GET() {
     region: process.env.VERCEL_REGION ?? 'local',
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev',
     env: process.env.VERCEL_ENV ?? 'development',
+    // Переменная и так уходит в браузерный бандл — секретом не является.
+    // Здесь она нужна, чтобы расхождение конфигурации ловилось запросом:
+    // неверный адрес молча ломает ссылки бота на Mini App.
+    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
   };
 
   try {
