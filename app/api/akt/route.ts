@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth/current';
 import { prisma } from '@/lib/db';
 import { SHELLS, type Shell } from '@/lib/core/shells';
+import { touchRollup } from '@/lib/core/rollup';
 import { loadState, recordAct } from '@/lib/core/state';
 
 export const runtime = 'nodejs';
@@ -44,7 +45,12 @@ export async function POST(request: Request) {
 
   const note = typeof body.note === 'string' ? body.note.slice(0, 2000).trim() || null : null;
 
-  await recordAct(prisma, user.id, body.shell as Shell, { minutes, note });
+  const now = new Date();
+  await recordAct(prisma, user.id, body.shell as Shell, { minutes, note }, now);
 
-  return NextResponse.json(await loadState(prisma, user.id, user.tz));
+  // Свод дня — кеш для Следа: Силу конкретного дня задним числом не восстановить.
+  const state = await loadState(prisma, user.id, user.tz, now);
+  await touchRollup(prisma, user.id, user.tz, now, state);
+
+  return NextResponse.json(state);
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth/current';
 import { prisma } from '@/lib/db';
 import { gainForAct } from '@/lib/core/shells';
+import { touchRollup } from '@/lib/core/rollup';
 import {
   BLESSING_KINDS,
   loadState,
@@ -60,8 +61,9 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({
-    ...(await loadState(prisma, user.id, user.tz, now)),
-    counted: !alreadyToday,
-  });
+  const state = await loadState(prisma, user.id, user.tz, now);
+  // Свод дня — кеш для Следа: Силу конкретного дня задним числом не восстановить.
+  await touchRollup(prisma, user.id, user.tz, now, state);
+
+  return NextResponse.json({ ...state, counted: !alreadyToday });
 }

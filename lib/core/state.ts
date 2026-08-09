@@ -116,7 +116,9 @@ export async function loadState(
 
 /**
  * Записывает акт применения: распад до «сейчас», затем прирост.
- * Возвращает новый уровень оболочки.
+ *
+ * Возвращает и уровень, и идентификатор акта: Декларация запоминает его в
+ * пункте, чтобы повторная отметка того же пункта не начислила акт дважды.
  */
 export async function recordAct(
   prisma: PrismaClient,
@@ -124,7 +126,7 @@ export async function recordAct(
   shell: Shell,
   input: { minutes?: number | null; note?: string | null },
   now = new Date(),
-): Promise<number> {
+): Promise<{ level: number; actId: string }> {
   const row = await prisma.shellState.findUnique({
     where: { userId_shell: { userId, shell } },
   });
@@ -135,7 +137,7 @@ export async function recordAct(
     now,
   );
 
-  await prisma.$transaction([
+  const [, act] = await prisma.$transaction([
     prisma.shellState.upsert({
       where: { userId_shell: { userId, shell } },
       create: { userId, shell, level: next.level, lastActAt: now },
@@ -146,7 +148,7 @@ export async function recordAct(
     }),
   ]);
 
-  return next.level;
+  return { level: next.level, actId: act.id };
 }
 
 /** Всего Благ в Завете БЛАГ: Сон, Вода, Еда, Тепло, Тело. */
