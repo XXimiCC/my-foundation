@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Triquetra } from '@/components/triquetra/Triquetra';
 import { BAY_ANGLE, bayPosition } from '@/components/triquetra/geometry';
@@ -78,13 +79,19 @@ export default function Page() {
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col gap-3 px-5 py-4">
-      <header className="text-center">
+      <header className="flex items-baseline justify-between">
         <h1
           className="text-xl tracking-[0.4em] text-gold-200"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           ОСНОВАНИЕ
         </h1>
+        <Link
+          href="/kanon"
+          className="text-[0.68rem] tracking-[0.2em] text-mute transition-colors hover:text-gold-200"
+        >
+          КАНОН →
+        </Link>
       </header>
 
       {/* Квадрат подстраивается под остаток высоты, поэтому ползунки внизу
@@ -106,12 +113,12 @@ export default function Page() {
           </Bay>
 
           <Bay angle={BAY_ANGLE.RIGHT}>
-            <Metric label="БОЛЬ" value={pain} tone="ash" />
+            <Metric label="БОЛЬ" value={pain} tone="frost" />
           </Bay>
 
           <Bay angle={BAY_ANGLE.BOTTOM}>
             <div className="text-center leading-tight">
-              <div className="text-[0.55rem] tracking-[0.25em] text-ash">
+              <div className="text-[0.68rem] tracking-[0.16em] text-mute">
                 {touched ? 'ОБОЛОЧКА' : 'СЛАБОЕ ЗВЕНО'}
               </div>
               <div
@@ -210,13 +217,13 @@ function Metric({
 }: {
   label: string;
   value: number;
-  tone: 'gold' | 'ash';
+  tone: 'gold' | 'frost';
 }) {
   return (
     <div className="text-center leading-none">
-      <div className="text-[0.55rem] tracking-[0.25em] text-ash">{label}</div>
+      <div className="text-[0.68rem] tracking-[0.16em] text-mute">{label}</div>
       <div
-        className={`mt-1 text-3xl tabular-nums ${tone === 'gold' ? 'text-gold-400' : 'text-ash'}`}
+        className={`mt-1 text-3xl tabular-nums ${tone === 'gold' ? 'text-gold-400' : 'text-frost'}`}
         style={{ fontFamily: 'var(--font-display)' }}
       >
         {value.toFixed(0)}
@@ -240,7 +247,7 @@ function Toggle({
       className={`rounded-sm border px-2.5 py-1.5 text-[0.6rem] tracking-[0.15em] transition-colors ${
         active
           ? 'border-gold-400 bg-gold-600/20 text-gold-200'
-          : 'border-coal-lift text-ash hover:border-gold-600/40'
+          : 'border-coal-lift text-mute hover:border-gold-600/40'
       }`}
     >
       {children}
