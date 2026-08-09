@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Поднимает патч-версию в package.json на каждом коммите.
+#
+# Версия должна расти сама: сверять хеши коммитов на глаз невозможно, а
+# «v0.1.7» на экране сразу говорит, та ли сборка перед тобой. MAJOR и MINOR
+# правятся руками, когда это осмысленно; PATCH считает машина.
+#
+# Включается один раз:  git config core.hooksPath .githooks
+
+set -e
+
+# Если версия уже правится в этом коммите вручную — не мешаем.
+if git diff --cached --name-only | grep -q '^package.json$'; then
+  if git diff --cached package.json | grep -q '^+  "version"'; then
+    exit 0
+  fi
+fi
+
+command -v node >/dev/null 2>&1 || exit 0
+
+node - <<'NODE'
+const fs = require('node:fs');
+
+const path = 'package.json';
+const raw = fs.readFileSync(path, 'utf8');
+const pkg = JSON.parse(raw);
+
+const parts = String(pkg.version ?? '0.0.0').split('.').map(Number);
+if (parts.length !== 3 || parts.some(Number.isNaN)) {
+  process.exit(0);
+}
+
+parts[2] += 1;
+const next = parts.join('.');
+
+// Правим строку точечно, чтобы не переформатировать весь файл.
+const updated = raw.replace(
+  /("version"\s*:\s*")[^"]+(")/,
+  (_, before, after) => before + next + after,
+);
+
+fs.writeFileSync(path, updated);
+console.log('версия → ' + next);
+NODE
+
+git add package.json

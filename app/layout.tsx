@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { AppNav } from '@/components/system/AppNav';
 import { TelegramInit } from '@/components/system/TelegramInit';
 import { VersionGuard } from '@/components/system/VersionGuard';
 import './globals.css';
@@ -34,7 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <TelegramInit />
         <VersionGuard />
-        {children}
+        {/* Колонка на всю высоту: панель прижата книзу, а содержимое получает
+            остаток. Иначе экран Триквестра с его h-dvh уезжал бы под панель. */}
+        <div className="flex min-h-dvh flex-col">
+          <div className="min-h-0 flex-1">{children}</div>
+          <AppNav />
+        </div>
       </body>
     </html>
   );

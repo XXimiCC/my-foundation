@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
@@ -78,20 +77,15 @@ export default function Page() {
     setState((prev) => ({ ...prev, [shell]: { ...prev[shell], level } }));
 
   return (
-    <main className="mx-auto flex h-dvh max-w-md flex-col gap-3 px-5 py-4">
-      <header className="flex items-baseline justify-between">
+    <main className="mx-auto flex h-full max-w-md flex-col gap-3 px-5 py-4">
+      {/* Переходы живут в нижней панели — в шапке они дублировались. */}
+      <header className="text-center">
         <h1
           className="text-xl tracking-[0.4em] text-gold-200"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           ОСНОВАНИЕ
         </h1>
-        <Link
-          href="/kanon"
-          className="text-[0.68rem] tracking-[0.2em] text-mute transition-colors hover:text-gold-200"
-        >
-          КАНОН →
-        </Link>
       </header>
 
       {/* SVG сам вписывается в отведённый прямоугольник и центрируется,
