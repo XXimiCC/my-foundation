@@ -16,7 +16,8 @@
     "db:push": "prisma migrate dev",
     "canon:import": "tsx scripts/import-canon.mts",
     "shot": "tsx scripts/shot.mts",
-    "check:fill": "tsx scripts/check-fill.mts"
+    "check:fill": "tsx scripts/check-fill.mts",
+    "check:artifact": "tsx scripts/check-artifact.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
