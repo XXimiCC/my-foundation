@@ -188,7 +188,7 @@ export function extractTheses(body: string): ParsedThesis[] {
   const seen = new Set<string>();
 
   const push = (kind: ThesisKind, raw: string) => {
-    const text = cleanInline(raw);
+    const text = capitalizeFirst(cleanInline(raw));
     if (text.length < THESIS_MIN || text.length > THESIS_MAX) return;
     // Отбрасываем обрывки без завершённой мысли.
     if (!/[.!?»]$/.test(text) && text.split(/\s+/).length < 6) return;
@@ -208,6 +208,19 @@ export function extractTheses(body: string): ParsedThesis[] {
   }
 
   return out;
+}
+
+/**
+ * Тезис нередко выдран из середины фразы и начинается со строчной буквы.
+ * Как самостоятельное утверждение он читается плохо, поэтому первая буква
+ * поднимается — но только если это буква, а не кавычка или цифра.
+ */
+export function capitalizeFirst(text: string): string {
+  const first = text.charAt(0);
+  if (!first || first !== first.toLowerCase() || first === first.toUpperCase()) {
+    return text;
+  }
+  return first.toUpperCase() + text.slice(1);
 }
 
 /** Убирает разметку внутри строки, оставляя читаемый текст. */

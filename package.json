@@ -17,10 +17,13 @@
     "canon:import": "tsx scripts/import-canon.mts",
     "shot": "tsx scripts/shot.mts",
     "check:fill": "tsx scripts/check-fill.mts",
-    "check:artifact": "tsx scripts/check-artifact.mts"
+    "check:artifact": "tsx scripts/check-artifact.mts",
+    "check:osnashenie": "tsx scripts/check-osnashenie.mts",
+    "shot:osnashenie": "tsx scripts/shot-osnashenie.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "jose": "^6.2.8",
     "next": "^15.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

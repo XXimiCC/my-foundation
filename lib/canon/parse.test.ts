@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   canonicalTitle,
+  capitalizeFirst,
   classify,
   cleanInline,
   extractSections,
@@ -166,6 +167,27 @@ describe('Тезисы для Слова Дня', () => {
     for (const d of docs) {
       for (const t of d.theses) {
         expect(t.text, `разметка в ${d.slug}`).not.toMatch(/\*\*|\[\[|\]\(|^>/);
+      }
+    }
+  });
+
+  it('тезис из середины фразы начинается с прописной буквы', () => {
+    // Иначе самостоятельное утверждение читается как обрывок.
+    expect(capitalizeFirst('творение это переход из небытия в бытие')).toBe(
+      'Творение это переход из небытия в бытие',
+    );
+    expect(capitalizeFirst('Уже с прописной')).toBe('Уже с прописной');
+    expect(capitalizeFirst('«цитата в кавычках»')).toBe('«цитата в кавычках»');
+    expect(capitalizeFirst('10 отжиманий')).toBe('10 отжиманий');
+    expect(capitalizeFirst('')).toBe('');
+  });
+
+  it('ни один тезис не начинается со строчной буквы', () => {
+    for (const d of docs) {
+      for (const t of d.theses) {
+        const first = t.text.charAt(0);
+        const isLower = first !== first.toUpperCase() && first === first.toLowerCase();
+        expect(isLower, `${d.slug}: «${t.text.slice(0, 40)}»`).toBe(false);
       }
     }
   });

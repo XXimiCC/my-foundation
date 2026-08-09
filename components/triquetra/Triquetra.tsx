@@ -53,9 +53,21 @@ export interface TriquetraProps {
    * привязаны к геометрии и не зависят от того, как контейнер вписал фигуру.
    */
   readouts?: TriquetraReadouts;
+  /**
+   * Сборка знака во время Оснащения, 0..1.
+   *
+   * До принятия Договора Триквестра не существует: контур достраивается по
+   * мере принятых Основ. Девять вычерчивают три оболочки, по три сегмента на
+   * каждую, десятая замыкает круг. Пока идёт сборка, заполнения и ядра нет —
+   * их нечем заполнять.
+   */
+  assembly?: number;
   className?: string;
   onShellClick?: (shell: Shell) => void;
 }
+
+/** Доля контура, приходящаяся на лепестки. Остальное — замыкающее кольцо. */
+const PETALS_SHARE = 0.9;
 
 const PETAL = petalPath();
 
@@ -66,9 +78,11 @@ export function Triquetra({
   silence = false,
   highlight = null,
   readouts,
+  assembly,
   className,
   onShellClick,
 }: TriquetraProps) {
+  const assembling = assembly !== undefined && assembly < 1;
   // useId даёт уникальные id при нескольких Триквестрах на странице —
   // иначе ссылки url(#...) перехватят чужие определения.
   const uid = useId().replace(/:/g, '');
@@ -83,8 +97,9 @@ export function Triquetra({
 
   // Ядро загорается нелинейно: пока хоть одна оболочка отстаёт, центр тёмный.
   // Показатель 1.6 делает загорание поздним и заметным событием.
-  const coreOpacity = silence ? 0 : Math.pow(s, 1.6);
-  const bloomOpacity = silence ? 0.1 : 0.12 + s * 0.5;
+  const coreOpacity = silence || assembling ? 0 : Math.pow(s, 1.6);
+  // Во время сборки свечения нет: светиться нечему, Договор ещё не принят.
+  const bloomOpacity = silence ? 0.1 : assembling ? 0 : 0.12 + s * 0.5;
 
   return (
     <svg
@@ -183,16 +198,51 @@ export function Triquetra({
       />
 
       <g className="tq-knot" data-spin={silence || undefined}>
-        {/* Кольца обрамления, как на знаке Основания. */}
-        <circle r={RING_OUTER} fill="none" stroke="var(--tq-ring)" strokeWidth={0.055} />
-        <circle r={RING_INNER} fill="none" stroke="var(--tq-ring-thin)" strokeWidth={0.016} />
+        {/* Призрачный контур во время сборки: пустота на месте знака читалась
+            бы как поломка, а так видно, что именно предстоит вычертить. */}
+        {assembling && (
+          <g stroke="var(--tq-patina)" fill="none" opacity={0.28}>
+            <circle r={RING_OUTER} strokeWidth={0.012} />
+            <circle r={RING_INNER} strokeWidth={0.008} />
+            {SHELLS.map((shell) => (
+              <path
+                key={shell}
+                d={PETAL}
+                transform={`rotate(${SHELL_ROTATION[shell]})`}
+                strokeWidth={0.01}
+              />
+            ))}
+          </g>
+        )}
+
+        {/* Кольца обрамления, как на знаке Основания. Во время Оснащения
+            внешнее кольцо замыкается последней, десятой Основой. */}
+        <circle
+          r={RING_OUTER}
+          fill="none"
+          stroke="var(--tq-ring)"
+          strokeWidth={0.055}
+          pathLength={1}
+          strokeDasharray={assembling ? `${ringProgress(assembly)} 1` : undefined}
+          className={assembling ? 'tq-assemble' : undefined}
+        />
+        <circle
+          r={RING_INNER}
+          fill="none"
+          stroke="var(--tq-ring-thin)"
+          strokeWidth={0.016}
+          pathLength={1}
+          strokeDasharray={assembling ? `${ringProgress(assembly)} 1` : undefined}
+          className={assembling ? 'tq-assemble' : undefined}
+        />
 
         {/* Яркость лепестка означает ТОЛЬКО уровень заполнения.
             Подсветка выбранной оболочки идёт контуром: раньше остальные
             приглушались до 0.45, и залитый лепесток выглядел полупустым —
             два разных смысла боролись за один канал. */}
-        {SHELLS.map((shell) => {
+        {SHELLS.map((shell, index) => {
           const isActive = highlight === shell;
+          const drawn = assembling ? petalProgress(assembly, index) : 1;
           return (
             <g
               key={shell}
@@ -201,14 +251,19 @@ export function Triquetra({
               onClick={onShellClick ? () => onShellClick(shell) : undefined}
               style={{ cursor: onShellClick ? 'pointer' : undefined }}
             >
-              {/* Незаполненная часть — патина, потускневшее золото. */}
-              <path d={PETAL} fill="var(--tq-patina)" fillOpacity={0.22} />
-              {/* Заполненная часть. */}
-              <path
-                d={PETAL}
-                fill={`url(#${id('fill')})`}
-                mask={`url(#${id(`mask-${shell}`)})`}
-              />
+              {/* Во время сборки заполнять нечего: Договор ещё не принят. */}
+              {!assembling && (
+                <>
+                  {/* Незаполненная часть — патина, потускневшее золото. */}
+                  <path d={PETAL} fill="var(--tq-patina)" fillOpacity={0.22} />
+                  {/* Заполненная часть. */}
+                  <path
+                    d={PETAL}
+                    fill={`url(#${id('fill')})`}
+                    mask={`url(#${id(`mask-${shell}`)})`}
+                  />
+                </>
+              )}
               {/* Контур существует всегда: он и есть принятая Основа.
                   Он же несёт подсветку выбранной оболочки. */}
               <path
@@ -216,6 +271,9 @@ export function Triquetra({
                 fill="none"
                 stroke={isActive ? 'var(--tq-gold-200)' : 'var(--tq-outline)'}
                 strokeWidth={isActive ? 0.032 : 0.02}
+                pathLength={1}
+                strokeDasharray={assembling ? `${drawn} 1` : undefined}
+                className={assembling ? 'tq-assemble' : undefined}
                 style={{ transition: 'stroke 400ms ease, stroke-width 400ms ease' }}
               />
             </g>
@@ -245,6 +303,20 @@ export function Triquetra({
       )}
     </svg>
   );
+}
+
+/**
+ * Сколько контура лепестка вычерчено при общей готовности сборки.
+ * Девять Основ распределяются по три на оболочку.
+ */
+function petalProgress(assembly: number, index: number): number {
+  const per = PETALS_SHARE / SHELLS.length;
+  return clamp01((clamp01(assembly) - index * per) / per);
+}
+
+/** Кольцо замыкается последней, десятой Основой. */
+function ringProgress(assembly: number): number {
+  return clamp01((clamp01(assembly) - PETALS_SHARE) / (1 - PETALS_SHARE));
 }
 
 const TWEEN_MS = 900;
