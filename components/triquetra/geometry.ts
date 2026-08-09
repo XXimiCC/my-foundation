@@ -119,3 +119,51 @@ export function maskOffset(fill: number): number {
 export function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
+
+// ─── Заливы: свободные промежутки между лепестками ──────────────────────────
+
+/**
+ * Лепестки смотрят на 90°, 210° и 330°, поэтому промежутки между ними лежат
+ * на 30°, 150° и 270°. Ближе к кольцу лепесток резко сужается, и там остаётся
+ * много пустого места — туда убираются Сила, Боль и слабое звено, чтобы не
+ * занимать высоту под Триквестром.
+ */
+export const BAY_ANGLE = { RIGHT: 30, LEFT: 150, BOTTOM: 270 } as const;
+
+/** Радиус, на котором размещаются надписи в заливах. */
+export const BAY_RADIUS = 0.95;
+
+/**
+ * Половина ширины лепестка на заданном удалении от центра вдоль его оси.
+ * Нужна, чтобы проверять, что надписи в заливах не наезжают на золото.
+ */
+export function petalHalfWidthAt(distanceAlongAxis: number): number {
+  const y = -distanceAlongAxis; // ось лепестка смотрит вверх
+  const dy = y + D / 2;
+  const inside = R * R - dy * dy;
+  if (inside <= 0) return 0;
+  return Math.max(0, Math.sqrt(inside) - PETAL_CENTER_OFFSET);
+}
+
+/** Угловая полуширина лепестка на заданном радиусе, в градусах. */
+export function petalHalfAngleAt(radius: number): number {
+  if (radius <= 0) return 90;
+  return (Math.atan(petalHalfWidthAt(radius) / radius) * 180) / Math.PI;
+}
+
+/**
+ * Положение точки залива в процентах от стороны квадратного контейнера —
+ * для абсолютного позиционирования HTML поверх Триквестра.
+ */
+export function bayPosition(
+  angleDeg: number,
+  radius: number = BAY_RADIUS,
+): { left: string; top: string } {
+  const rad = (angleDeg * Math.PI) / 180;
+  const x = Math.cos(rad) * radius;
+  const y = -Math.sin(rad) * radius; // в SVG ось Y направлена вниз
+  return {
+    left: `${50 + (x / VIEW) * 50}%`,
+    top: `${50 + (y / VIEW) * 50}%`,
+  };
+}

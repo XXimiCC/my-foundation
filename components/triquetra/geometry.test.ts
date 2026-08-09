@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AXIS_LENGTH,
+  BAY_ANGLE,
+  BAY_RADIUS,
   D,
   H,
   INNER,
@@ -12,7 +14,10 @@ import {
   TIP,
   Y_INNER,
   Y_TIP,
+  bayPosition,
   maskOffset,
+  petalHalfAngleAt,
+  petalHalfWidthAt,
   petalPath,
 } from './geometry';
 
@@ -107,6 +112,69 @@ describe('Область маски', () => {
     expect(high).toBeLessThan(Y_INNER);
   });
 });
+
+describe('Заливы между лепестками', () => {
+  const PETAL_AXES = [90, 210, 330];
+
+  it('лежат ровно посередине между осями соседних лепестков', () => {
+    for (const bay of Object.values(BAY_ANGLE)) {
+      const gaps = PETAL_AXES.map((a) => angularDistance(bay, a)).sort((x, y) => x - y);
+      expect(gaps[0]).toBeCloseTo(60, 6);
+    }
+  });
+
+  it('надписи не наезжают на золото: лепесток там втрое уже зазора', () => {
+    const half = petalHalfAngleAt(BAY_RADIUS);
+    expect(half).toBeLessThan(20);
+    // Ближайшая ось лепестка в 60°, значит просвет с каждой стороны:
+    expect(60 - half).toBeGreaterThan(40);
+  });
+
+  it('радиус надписей лежит между вершиной лепестка и внутренним кольцом', () => {
+    expect(BAY_RADIUS).toBeLessThan(RING_INNER);
+    expect(BAY_RADIUS).toBeGreaterThan(0.5);
+  });
+
+  it('лепесток сужается к вершине', () => {
+    expect(petalHalfWidthAt(0.95)).toBeLessThan(petalHalfWidthAt(0.43));
+    expect(petalHalfWidthAt(TIP)).toBeCloseTo(0, 5);
+  });
+
+  it('самое широкое место лепестка — на середине образующей', () => {
+    expect(petalHalfWidthAt(D / 2)).toBeCloseTo(PETAL_HALF_WIDTH, 9);
+  });
+
+  it('переводит углы в проценты контейнера', () => {
+    const left = bayPosition(BAY_ANGLE.LEFT);
+    const right = bayPosition(BAY_ANGLE.RIGHT);
+    const bottom = bayPosition(BAY_ANGLE.BOTTOM);
+    const pct = (v: string) => parseFloat(v);
+    // Залив на 150° отстоит от центра на BAY_RADIUS·cos150 в долях полустороны.
+    const expectedLeft = 50 + ((Math.cos((150 * Math.PI) / 180) * BAY_RADIUS) / 1.45) * 50;
+    expect(pct(left.left)).toBeCloseTo(expectedLeft, 6);
+    expect(pct(right.left)).toBeCloseTo(100 - expectedLeft, 6);
+    expect(pct(bottom.left)).toBeCloseTo(50, 6);
+    // Левый и правый залив симметричны и лежат выше центра.
+    expect(left.top).toBe(right.top);
+    expect(parseFloat(left.top)).toBeLessThan(50);
+    expect(parseFloat(bottom.top)).toBeGreaterThan(50);
+  });
+
+  it('все надписи остаются внутри контейнера', () => {
+    for (const bay of Object.values(BAY_ANGLE)) {
+      const p = bayPosition(bay);
+      expect(parseFloat(p.left)).toBeGreaterThan(5);
+      expect(parseFloat(p.left)).toBeLessThan(95);
+      expect(parseFloat(p.top)).toBeGreaterThan(5);
+      expect(parseFloat(p.top)).toBeLessThan(95);
+    }
+  });
+});
+
+function angularDistance(a: number, b: number): number {
+  const d = Math.abs(((a - b) % 360) + 360) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
 describe('Путь лепестка', () => {
   const d = petalPath();
