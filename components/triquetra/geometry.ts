@@ -151,17 +151,31 @@ export function petalHalfAngleAt(radius: number): number {
   return (Math.atan(petalHalfWidthAt(radius) / radius) * 180) / Math.PI;
 }
 
+/** Центр залива в координатах SVG. */
+export function bayPoint(
+  angleDeg: number,
+  radius: number = BAY_RADIUS,
+): { x: number; y: number } {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: Math.cos(rad) * radius,
+    y: -Math.sin(rad) * radius, // в SVG ось Y направлена вниз
+  };
+}
+
 /**
- * Положение точки залива в процентах от стороны квадратного контейнера —
- * для абсолютного позиционирования HTML поверх Триквестра.
+ * То же положение в процентах от стороны квадратного контейнера — для
+ * наложения HTML поверх Триквестра.
+ *
+ * Показания приложения рисуются внутри SVG: так они привязаны к геометрии и
+ * не зависят от того, как контейнер вписал фигуру. Эта функция оставлена для
+ * случаев, когда поверх нужен именно HTML — и требует строго квадратного бокса.
  */
 export function bayPosition(
   angleDeg: number,
   radius: number = BAY_RADIUS,
 ): { left: string; top: string } {
-  const rad = (angleDeg * Math.PI) / 180;
-  const x = Math.cos(rad) * radius;
-  const y = -Math.sin(rad) * radius; // в SVG ось Y направлена вниз
+  const { x, y } = bayPoint(angleDeg, radius);
   return {
     left: `${50 + (x / VIEW) * 50}%`,
     top: `${50 + (y / VIEW) * 50}%`,

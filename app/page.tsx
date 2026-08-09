@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Triquetra } from '@/components/triquetra/Triquetra';
-import { BAY_ANGLE, bayPosition } from '@/components/triquetra/geometry';
 import {
   SHELL_LABEL,
   SHELLS,
@@ -94,42 +93,28 @@ export default function Page() {
         </Link>
       </header>
 
-      {/* Квадрат подстраивается под остаток высоты, поэтому ползунки внизу
-          никогда не уезжают за экран. */}
-      <div className="grid min-h-0 flex-1 place-items-center">
-        <div className="relative aspect-square h-full max-h-full max-w-full">
-          <Triquetra
-            levels={levels}
-            sila={force}
-            fasting={fasting}
-            silence={silence}
-            highlight={highlight}
-            className="absolute inset-0 h-full w-full"
-            onShellClick={act}
-          />
-
-          <Bay angle={BAY_ANGLE.LEFT}>
-            <Metric label="СИЛА" value={force} tone="gold" />
-          </Bay>
-
-          <Bay angle={BAY_ANGLE.RIGHT}>
-            <Metric label="БОЛЬ" value={pain} tone="frost" />
-          </Bay>
-
-          <Bay angle={BAY_ANGLE.BOTTOM}>
-            <div className="text-center leading-tight">
-              <div className="text-[0.68rem] tracking-[0.16em] text-mute">
-                {touched ? 'ОБОЛОЧКА' : 'СЛАБОЕ ЗВЕНО'}
-              </div>
-              <div
-                className="text-base text-gold-200"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {SHELL_LABEL[highlight]}
-              </div>
-            </div>
-          </Bay>
-        </div>
+      {/* SVG сам вписывается в отведённый прямоугольник и центрируется,
+          поэтому фигура не вылезает за экран ни по ширине, ни по высоте.
+          Показания рисуются внутри неё — согласовывать их с боксом не нужно. */}
+      <div className="min-h-0 flex-1">
+        <Triquetra
+          levels={levels}
+          sila={force}
+          fasting={fasting}
+          silence={silence}
+          highlight={highlight}
+          readouts={{
+            left: { label: 'СИЛА', value: force.toFixed(0), tone: 'gold' },
+            right: { label: 'БОЛЬ', value: pain.toFixed(0), tone: 'frost' },
+            bottom: {
+              label: touched ? 'ОБОЛОЧКА' : 'СЛАБОЕ ЗВЕНО',
+              value: SHELL_LABEL[highlight],
+              tone: 'gold',
+            },
+          }}
+          className="h-full w-full"
+          onShellClick={act}
+        />
       </div>
 
       <section className="flex shrink-0 flex-col gap-2.5">
@@ -195,40 +180,6 @@ export default function Page() {
         </Toggle>
       </section>
     </main>
-  );
-}
-
-/** Абсолютное позиционирование в свободном промежутке между лепестками. */
-function Bay({ angle, children }: { angle: number; children: React.ReactNode }) {
-  return (
-    <div
-      className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
-      style={bayPosition(angle)}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: 'gold' | 'frost';
-}) {
-  return (
-    <div className="text-center leading-none">
-      <div className="text-[0.68rem] tracking-[0.16em] text-mute">{label}</div>
-      <div
-        className={`mt-1 text-3xl tabular-nums ${tone === 'gold' ? 'text-gold-400' : 'text-frost'}`}
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        {value.toFixed(0)}
-      </div>
-    </div>
   );
 }
 

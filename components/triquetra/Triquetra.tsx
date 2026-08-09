@@ -1,19 +1,38 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
-  MASK_RECT,
+  BAY_ANGLE,
   MASK_REGION,
   RING_INNER,
   RING_OUTER,
   SHELLS,
   SHELL_ROTATION,
+  TIP,
   VIEW_BOX,
+  MASK_RECT,
+  bayPoint,
   clamp01,
   maskOffset,
   petalPath,
   type Shell,
 } from './geometry';
+
+/** Надпись в одном из свободных промежутков между лепестками. */
+export interface Readout {
+  label: string;
+  value: string;
+  tone?: 'gold' | 'frost';
+}
+
+export interface TriquetraReadouts {
+  /** Слева — Сила. */
+  left?: Readout;
+  /** Справа — Боль. */
+  right?: Readout;
+  /** Снизу — слабое звено или текущая оболочка. */
+  bottom?: Readout;
+}
 
 export interface TriquetraProps {
   /** Уровни оболочек, 0..100. */
@@ -29,6 +48,11 @@ export interface TriquetraProps {
   silence?: boolean;
   /** Подсветить одну оболочку — например слабое звено. */
   highlight?: Shell | null;
+  /**
+   * Показания в промежутках между лепестками. Рисуются внутри SVG, поэтому
+   * привязаны к геометрии и не зависят от того, как контейнер вписал фигуру.
+   */
+  readouts?: TriquetraReadouts;
   className?: string;
   onShellClick?: (shell: Shell) => void;
 }
@@ -41,6 +65,7 @@ export function Triquetra({
   fasting = false,
   silence = false,
   highlight = null,
+  readouts,
   className,
   onShellClick,
 }: TriquetraProps) {
@@ -48,6 +73,11 @@ export function Triquetra({
   // иначе ссылки url(#...) перехватят чужие определения.
   const uid = useId().replace(/:/g, '');
   const id = (name: string) => `${name}-${uid}`;
+
+  // Заполнение анимируется твином, а не CSS-переходом: точки многоугольника
+  // интерполировать переходом нельзя, а преобразования внутри маски
+  // применять нельзя тем более.
+  const shown = useTweenedLevels(levels);
 
   const s = clamp01(sila / 100);
 
@@ -80,19 +110,16 @@ export function Triquetra({
           <stop offset="100%" stopColor="var(--tq-gold-600)" />
         </radialGradient>
 
-        {/* Золото заполнения: у вершины ярче, к центру глубже. */}
-        <linearGradient
-          id={id('fill')}
-          gradientUnits="userSpaceOnUse"
-          x1="0"
-          y1={-RING_INNER}
-          x2="0"
-          y2={RING_INNER}
-        >
-          <stop offset="0%" stopColor="var(--tq-gold-200)" />
+        {/* Золото заполнения: у вершины ярче, к центру глубже.
+            Градиент радиальный, а не линейный: он симметричен относительно
+            поворота, поэтому все три лепестка выглядят одинаково. Линейный
+            разрешался в корневых координатах и делал нижние лепестки темнее
+            верхнего — казалось, будто они залиты слабее. */}
+        <radialGradient id={id('fill')} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={TIP}>
+          <stop offset="0%" stopColor="var(--tq-gold-600)" />
           <stop offset="55%" stopColor="var(--tq-gold-400)" />
-          <stop offset="100%" stopColor="var(--tq-gold-600)" />
-        </linearGradient>
+          <stop offset="100%" stopColor="var(--tq-gold-200)" />
+        </radialGradient>
 
         {/* По маске на оболочку: сдвиг по Y открывает лепесток от вершины внутрь. */}
         {SHELLS.map((shell) => (
@@ -102,11 +129,18 @@ export function Triquetra({
             maskUnits="userSpaceOnUse"
             {...MASK_REGION}
           >
+            {/* Ни одного transform — ни атрибутом, ни через CSS.
+                Содержимое маски разрешается в системе координат ссылающегося
+                элемента, то есть уже повёрнутой вместе с лепестком. Значит
+                прямоугольник и так выровнен по оси лепестка, и достаточно
+                двигать его атрибутом y. Любая попытка добавить сюда поворот
+                или CSS-перенос ломала заливку у повёрнутых лепестков. */}
             <rect
-              {...MASK_RECT}
+              x={MASK_RECT.x}
+              y={MASK_RECT.y + maskOffset(shown[shell] / 100)}
+              width={MASK_RECT.width}
+              height={MASK_RECT.height}
               fill="#fff"
-              className="tq-fill"
-              style={{ transform: `translateY(${maskOffset(levels[shell] / 100)}px)` }}
             />
           </mask>
         ))}
@@ -153,18 +187,19 @@ export function Triquetra({
         <circle r={RING_OUTER} fill="none" stroke="var(--tq-ring)" strokeWidth={0.055} />
         <circle r={RING_INNER} fill="none" stroke="var(--tq-ring-thin)" strokeWidth={0.016} />
 
+        {/* Яркость лепестка означает ТОЛЬКО уровень заполнения.
+            Подсветка выбранной оболочки идёт контуром: раньше остальные
+            приглушались до 0.45, и залитый лепесток выглядел полупустым —
+            два разных смысла боролись за один канал. */}
         {SHELLS.map((shell) => {
-          const isDim = highlight !== null && highlight !== shell;
+          const isActive = highlight === shell;
           return (
             <g
               key={shell}
+              data-petal={shell}
               transform={`rotate(${SHELL_ROTATION[shell]})`}
-              opacity={isDim ? 0.45 : 1}
               onClick={onShellClick ? () => onShellClick(shell) : undefined}
-              style={{
-                transition: 'opacity 400ms ease',
-                cursor: onShellClick ? 'pointer' : undefined,
-              }}
+              style={{ cursor: onShellClick ? 'pointer' : undefined }}
             >
               {/* Незаполненная часть — патина, потускневшее золото. */}
               <path d={PETAL} fill="var(--tq-patina)" fillOpacity={0.22} />
@@ -174,13 +209,14 @@ export function Triquetra({
                 fill={`url(#${id('fill')})`}
                 mask={`url(#${id(`mask-${shell}`)})`}
               />
-              {/* Контур существует всегда: он и есть принятая Основа. */}
+              {/* Контур существует всегда: он и есть принятая Основа.
+                  Он же несёт подсветку выбранной оболочки. */}
               <path
                 d={PETAL}
                 fill="none"
-                stroke={highlight === shell ? 'var(--tq-gold-200)' : 'var(--tq-outline)'}
-                strokeWidth={0.02}
-                style={{ transition: 'stroke 400ms ease' }}
+                stroke={isActive ? 'var(--tq-gold-200)' : 'var(--tq-outline)'}
+                strokeWidth={isActive ? 0.032 : 0.02}
+                style={{ transition: 'stroke 400ms ease, stroke-width 400ms ease' }}
               />
             </g>
           );
@@ -199,6 +235,114 @@ export function Triquetra({
           />
         </g>
       </g>
+
+      {!silence && readouts && (
+        <g>
+          <BayText point={bayPoint(BAY_ANGLE.LEFT)} readout={readouts.left} />
+          <BayText point={bayPoint(BAY_ANGLE.RIGHT)} readout={readouts.right} />
+          <BayText point={bayPoint(BAY_ANGLE.BOTTOM)} readout={readouts.bottom} small />
+        </g>
+      )}
     </svg>
+  );
+}
+
+const TWEEN_MS = 900;
+
+/**
+ * Плавно подтягивает показанные уровни к заданным.
+ *
+ * При включённом «уменьшить движение» значение проставляется сразу: в Основе 4
+ * прямо сказано, что приложение не имеет права быть источником беспокойства.
+ */
+function useTweenedLevels(target: Record<Shell, number>): Record<Shell, number> {
+  const [shown, setShown] = useState(target);
+  const frame = useRef<number | null>(null);
+  const from = useRef(target);
+  const startedAt = useRef(0);
+
+  const key = SHELLS.map((s) => target[s]).join(',');
+
+  useEffect(() => {
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      setShown(target);
+      return;
+    }
+
+    from.current = shown;
+    startedAt.current = performance.now();
+
+    const step = (now: number) => {
+      const t = Math.min(1, (now - startedAt.current) / TWEEN_MS);
+      // Плавное замедление к концу — золото «доливается», а не щёлкает.
+      const e = 1 - Math.pow(1 - t, 3);
+      setShown({
+        BODY: lerp(from.current.BODY, target.BODY, e),
+        MIND: lerp(from.current.MIND, target.MIND, e),
+        SPIRIT: lerp(from.current.SPIRIT, target.SPIRIT, e),
+      });
+      if (t < 1) frame.current = requestAnimationFrame(step);
+    };
+
+    frame.current = requestAnimationFrame(step);
+    return () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    };
+    // Пересчёт запускается только при смене целевых уровней.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return shown;
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+/**
+ * Надпись в промежутке между лепестками. Размеры заданы в единицах viewBox,
+ * поэтому композиция сохраняет пропорции при любом размере фигуры.
+ */
+function BayText({
+  point,
+  readout,
+  small = false,
+}: {
+  point: { x: number; y: number };
+  readout?: Readout;
+  small?: boolean;
+}) {
+  if (!readout) return null;
+
+  const valueFill =
+    readout.tone === 'frost' ? 'var(--tq-readout-frost)' : 'var(--tq-readout-gold)';
+
+  return (
+    <>
+      <text
+        x={point.x}
+        y={point.y - 0.06}
+        textAnchor="middle"
+        fill="var(--tq-readout-mute)"
+        fontSize={0.075}
+        letterSpacing={0.016}
+      >
+        {readout.label}
+      </text>
+      <text
+        x={point.x}
+        y={point.y + (small ? 0.11 : 0.16)}
+        textAnchor="middle"
+        fill={valueFill}
+        fontSize={small ? 0.12 : 0.2}
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        {readout.value}
+      </text>
+    </>
   );
 }

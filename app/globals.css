@@ -45,6 +45,11 @@
   --tq-ring: #2a2620;
   --tq-ring-thin: #4a3f22;
 
+  /* Показания внутри фигуры. Контраст проверен: 6.24 и 8.68 к фону. */
+  --tq-readout-mute: var(--color-mute);
+  --tq-readout-gold: var(--color-gold-400);
+  --tq-readout-frost: var(--color-frost);
+
   color-scheme: dark;
 }
 
@@ -97,6 +102,8 @@ body {
   и возвращает золото по завершении. Это не баг вида — это и есть завет.
 */
 svg[data-fasting] {
+  --tq-readout-gold: #c3bfb2;
+  --tq-readout-frost: #a8a49a;
   --tq-gold-200: #d8d3c4;
   --tq-gold-400: #a8a396;
   --tq-gold-600: #6e6a60;
