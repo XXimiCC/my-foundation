@@ -66,9 +66,10 @@ async function checkScreen() {
   await page.goto(`${base}/nastroyki`, { waitUntil: 'domcontentloaded' });
   await page.getByText('КОГДА ЗВАТЬ').waitFor({ timeout: 20_000 });
   check('экран настроек открывается', true);
+  const previewList = page.locator('[data-preview] li');
   check(
     'предпросмотр показывает часы словами',
-    await page.getByText('Декларация на завтра').isVisible(),
+    (await previewList.allInnerTexts()).some((line) => line.includes('Декларация на завтра')),
   );
   await page.screenshot({ path: `${outDir}/nastroyki-1.png` });
 
@@ -92,7 +93,7 @@ async function checkScreen() {
   );
   check(
     'предпросмотр показывает набранное время',
-    (await page.getByText('Декларация на завтра').locator('..').innerText()).includes('23:30'),
+    (await previewList.allInnerTexts()).some((line) => line.includes('23:30')),
   );
   await page.screenshot({ path: `${outDir}/nastroyki-2-lovushka.png` });
 

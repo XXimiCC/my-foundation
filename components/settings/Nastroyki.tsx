@@ -277,7 +277,9 @@ export function Nastroyki({ initial, zones }: { initial: EditableSettings; zones
       {/* ── Предпросмотр ─────────────────────────────────────────────── */}
       <section className="flex flex-col gap-2">
         <h2 className="text-[0.62rem] tracking-[0.22em] text-mute">ДЕНЬ ВЫГЛЯДИТ ТАК</h2>
-        <ul className="flex flex-col">
+        {/* data-preview — адрес для проверки: те же слова стоят и в подписях
+            окон выше, и без якоря их не различить. */}
+        <ul data-preview className="flex flex-col">
           {preview(candidate).map((line) => (
             <li
               key={`${line.at}-${line.label}`}

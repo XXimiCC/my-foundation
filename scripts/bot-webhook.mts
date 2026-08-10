@@ -91,6 +91,24 @@ async function main() {
 
     const target = explicitUrl?.includes('/api/bot') ? explicitUrl : `${url}/api/bot`;
 
+    /**
+     * Показываем, ЧЕЙ токен и КУДА привязывается, — и предупреждаем, если бот
+     * не тот, что указан в конфигурации.
+     *
+     * Однажды этим скриптом с локальным токеном был привязан вебхук dev-бота
+     * на боевой адрес: обновления уходили на прод, а отвечал прод своим,
+     * другим ботом — в другой чат. Снаружи это выглядело как «бот молчит», и
+     * ни один ответ Telegram об этом не сообщал.
+     */
+    const me = (await api('getMe')).result as { username?: string };
+    const expected = process.env.TELEGRAM_BOT_USERNAME;
+    console.log(`\n  привязываю @${me?.username ?? '—'} → ${target}`);
+    if (expected && me?.username && expected !== me.username) {
+      console.log(
+        `  ВНИМАНИЕ: в конфигурации указан @${expected}, а токен принадлежит @${me.username}`,
+      );
+    }
+
     const result = await api('setWebhook', {
       url: target,
       secret_token: secret,
