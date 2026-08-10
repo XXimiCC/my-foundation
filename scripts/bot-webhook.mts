@@ -44,6 +44,11 @@ async function api(method: string, payload?: Record<string, unknown>) {
 
 async function main() {
   if (command === 'info') {
+    // Первым делом — чей это токен. Писать не тому боту проще всего, а
+    // выглядит это ровно как «бот молчит».
+    const me = (await api('getMe')).result as { username?: string; first_name?: string };
+    console.log(`\n  бот:          @${me?.username ?? '—'} (${me?.first_name ?? '—'})`);
+
     const info = (await api('getWebhookInfo')).result as {
       url?: string;
       pending_update_count?: number;
@@ -51,7 +56,7 @@ async function main() {
       last_error_date?: number;
     };
 
-    console.log(`\n  адрес:        ${info?.url || '— не привязан —'}`);
+    console.log(`  адрес:        ${info?.url || '— не привязан —'}`);
     console.log(`  в очереди:    ${info?.pending_update_count ?? 0}`);
     if (info?.last_error_message) {
       const when = info.last_error_date
@@ -92,7 +97,10 @@ async function main() {
       // Ничего, кроме сообщений и нажатий, боту не нужно: меньше трафика и
       // меньше поводов проснуться зря.
       allowed_updates: ['message', 'callback_query'],
-      drop_pending_updates: true,
+      // Копившееся не выбрасываем: в очереди лежит не мусор, а человек,
+      // который написал боту и ждёт ответа. Именно так при первой привязке
+      // потерялся первый же /start.
+      drop_pending_updates: false,
     });
 
     console.log(
