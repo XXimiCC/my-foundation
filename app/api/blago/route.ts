@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth/current';
 import { prisma } from '@/lib/db';
-import { gainForAct } from '@/lib/core/shells';
 import { touchRollup } from '@/lib/core/rollup';
 import {
   BLESSING_KINDS,
   loadState,
-  spiritShareForBlessing,
-  startOfLocalDay,
+  recordBlessing,
   type BlessingKind,
 } from '@/lib/core/state';
 
@@ -20,7 +18,7 @@ export const dynamic = 'force-dynamic';
  * Записывается КАЖДОЕ касание: благодарить воду положено при каждом
  * соприкосновении, и счётчик за день — часть практики. А уровень Духа
  * поднимает только новый вид Блага за сутки: практика в разнообразии, а не
- * в частоте нажатий.
+ * в частоте нажатий. Само правило живёт в state.ts — той же дорогой ходит бот.
  */
 export async function POST(request: Request) {
   const user = await currentUser();
@@ -37,33 +35,11 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const dayStart = startOfLocalDay(now, user.tz);
-
-  const alreadyToday = await prisma.blessing.findFirst({
-    where: { userId: user.id, blessing: kind, at: { gte: dayStart } },
-    select: { id: true },
-  });
-
-  await prisma.blessing.create({ data: { userId: user.id, blessing: kind, at: now } });
-
-  // Новый вид за сутки — поднимаем Дух на пятую часть акта.
-  if (!alreadyToday) {
-    const shell = await prisma.shellState.findUnique({
-      where: { userId_shell: { userId: user.id, shell: 'SPIRIT' } },
-    });
-    const level = shell?.level ?? 0;
-    const gain = gainForAct(level, 'SPIRIT') * spiritShareForBlessing(1);
-
-    await prisma.shellState.upsert({
-      where: { userId_shell: { userId: user.id, shell: 'SPIRIT' } },
-      create: { userId: user.id, shell: 'SPIRIT', level: Math.min(100, gain), lastActAt: now },
-      update: { level: Math.min(100, level + gain), lastActAt: now },
-    });
-  }
+  const { counted } = await recordBlessing(prisma, user.id, kind, user.tz, now);
 
   const state = await loadState(prisma, user.id, user.tz, now);
   // Свод дня — кеш для Следа: Силу конкретного дня задним числом не восстановить.
   await touchRollup(prisma, user.id, user.tz, now, state);
 
-  return NextResponse.json({ ...state, counted: !alreadyToday });
+  return NextResponse.json({ ...state, counted });
 }

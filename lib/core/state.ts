@@ -14,6 +14,7 @@ import {
   applyAct,
   bol,
   decayShell,
+  gainForAct,
   levelsOf,
   passivityDays,
   sila,
@@ -167,6 +168,45 @@ export function spiritShareForBlessing(distinctToday: number): number {
   return distinctToday >= 1 && distinctToday <= BLESSING_KINDS.length
     ? 1 / BLESSING_KINDS.length
     : 0;
+}
+
+/**
+ * Благодарение: запись касания и, если вид Блага за сутки новый, прирост Духа.
+ *
+ * Живёт здесь, а не в обработчике: то же самое делает бот по нажатию кнопки в
+ * чате, и правило «уровень поднимает разнообразие, а не частота» должно быть
+ * одно на оба входа.
+ */
+export async function recordBlessing(
+  prisma: PrismaClient,
+  userId: string,
+  blessing: BlessingKind,
+  tz: string,
+  now = new Date(),
+): Promise<{ counted: boolean }> {
+  const dayStart = startOfLocalDay(now, tz);
+
+  const alreadyToday = await prisma.blessing.findFirst({
+    where: { userId, blessing, at: { gte: dayStart } },
+    select: { id: true },
+  });
+
+  await prisma.blessing.create({ data: { userId, blessing, at: now } });
+  if (alreadyToday) return { counted: false };
+
+  const shell = await prisma.shellState.findUnique({
+    where: { userId_shell: { userId, shell: 'SPIRIT' } },
+  });
+  const level = shell?.level ?? 0;
+  const gain = gainForAct(level, 'SPIRIT') * spiritShareForBlessing(1);
+
+  await prisma.shellState.upsert({
+    where: { userId_shell: { userId, shell: 'SPIRIT' } },
+    create: { userId, shell: 'SPIRIT', level: Math.min(100, gain), lastActAt: now },
+    update: { level: Math.min(100, level + gain), lastActAt: now },
+  });
+
+  return { counted: true };
 }
 
 export function isSameLocalDay(a: Date, b: Date, tz: string): boolean {
