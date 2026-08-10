@@ -12,6 +12,21 @@
 const command = process.argv[2] ?? 'info';
 const explicitUrl = process.argv[3];
 
+/**
+ * В остальных скриптах `.env` подтягивается побочно — его читает Prisma при
+ * импорте. Здесь базы нет, поэтому файл нужно прочитать самим, иначе скрипт
+ * ругается на «незаданный» токен, который на самом деле задан.
+ */
+if (!process.env.TELEGRAM_BOT_TOKEN && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    // Файла может не быть — на боевом контуре переменные приходят из окружения.
+  }
+}
+
+const { normalizeAppUrl } = await import('../lib/config.ts');
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
 const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -56,8 +71,20 @@ async function main() {
 
   if (command === 'set') {
     if (!secret) throw new Error('TELEGRAM_WEBHOOK_SECRET не задан');
-    const target = explicitUrl ?? (appUrl ? `${appUrl.replace(/\/$/, '')}/api/bot` : null);
-    if (!target) throw new Error('не задан ни адрес аргументом, ни NEXT_PUBLIC_APP_URL');
+
+    /**
+     * Адрес проверяется здесь, а не на стороне Telegram: локальный `.env`
+     * держит localhost для разработки, и без проверки команда молча уходила
+     * бы привязывать вебхук на несуществующий снаружи адрес.
+     */
+    const raw = explicitUrl ?? appUrl;
+    const { url, warning } = normalizeAppUrl(raw);
+    if (!url) throw new Error(warning ?? 'адрес непригоден');
+    if (url.startsWith('http://')) {
+      throw new Error(`Telegram требует HTTPS, а это ${url} — передайте боевой адрес аргументом`);
+    }
+
+    const target = explicitUrl?.includes('/api/bot') ? explicitUrl : `${url}/api/bot`;
 
     const result = await api('setWebhook', {
       url: target,
