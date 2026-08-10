@@ -130,6 +130,15 @@ export const SECTIONS: Section[] = [
     source: 'Догма Следа',
   },
   {
+    key: 'nastroyki',
+    title: 'Настройки',
+    purpose: 'Часы ритуального дня, тихие часы, интенсивность и часовой пояс.',
+    href: '/nastroyki',
+    state: 'готово',
+    entry: 'нет',
+    source: 'Основа 4. Спокойствие',
+  },
+  {
     key: 'orden',
     title: 'Орден',
     purpose: 'Домены, гости и братья. Вторая очередь целиком.',

@@ -1,6 +1,6 @@
 {
   "name": "osnovanie",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "description": "Основание — приложение для вживления Философии Основания",
   "scripts": {
@@ -30,6 +30,8 @@
     "check:slovo": "tsx scripts/check-slovo.mts",
     "check:cron": "tsx scripts/check-cron.mts",
     "check:bot": "tsx scripts/check-bot.mts",
+    "check:settings": "tsx scripts/check-settings.mts",
+    "outbox": "tsx scripts/outbox.mts",
     "bot:webhook": "tsx scripts/bot-webhook.mts"
   },
   "dependencies": {

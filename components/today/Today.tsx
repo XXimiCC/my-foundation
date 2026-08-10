@@ -288,7 +288,15 @@ export function Today({
         </p>
       )}
 
-      <div className="mt-auto flex justify-center pt-2">
+      {/* Настройки не заслуживают вкладки, но должны находиться: ритуальные
+          окна правит тот, кому они приходят. */}
+      <div className="mt-auto flex items-center justify-between pt-2">
+        <Link
+          href="/nastroyki"
+          className="text-[0.62rem] tracking-[0.15em] text-mute transition-colors hover:text-gold-400"
+        >
+          НАСТРОЙКИ
+        </Link>
         <VersionBadge />
       </div>
     </main>
