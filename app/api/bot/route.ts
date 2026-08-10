@@ -68,21 +68,41 @@ function locked(chatId: number) {
   );
 }
 
+/**
+ * След обработки: что бот попытался сделать и чем это кончилось.
+ *
+ * Telegram тело ответа игнорирует, а вот увидеть причину молчания больше
+ * негде: логи serverless-функции доступны не всегда, а сбой исходящего вызова
+ * снаружи выглядит точно как успех. Читать след может только тот, у кого есть
+ * секрет вебхука.
+ */
+const trace: string[] = [];
+
+function note(step: string, result?: { ok: boolean; description?: string }) {
+  if (!result) trace.push(step);
+  else trace.push(`${step}: ${result.ok ? 'ок' : (result.description ?? 'отказ')}`);
+}
+
 export async function POST(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: 'нет доступа' }, { status: 401 });
   }
 
   const update = (await request.json().catch(() => ({}))) as Update;
+  trace.length = 0;
 
   try {
     if (update.callback_query) await onCallback(update.callback_query);
     else if (update.message) await onMessage(update.message);
+    else note('обновление без сообщения и без нажатия');
   } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
     console.error('бот:', e);
+    note(`сбой: ${message}`);
   }
 
-  return NextResponse.json({ ok: true });
+  // Всегда 200: на любом другом коде Telegram устраивает шторм повторов.
+  return NextResponse.json({ ok: true, trace: [...trace] });
 }
 
 async function onMessage(message: NonNullable<Update['message']>) {
@@ -94,7 +114,7 @@ async function onMessage(message: NonNullable<Update['message']>) {
 
   if (text.startsWith('/start')) {
     const { text: body, keyboard } = welcome(appUrl(), Boolean(user?.oathAt));
-    await sendMessage(message.chat.id, body, keyboard);
+    note('приветствие', await sendMessage(message.chat.id, body, keyboard));
     return;
   }
 
