@@ -78,7 +78,7 @@ export function Poligon() {
     setState((prev) => ({ ...prev, [shell]: { ...prev[shell], level } }));
 
   return (
-    <main className="mx-auto flex h-full max-w-md flex-col gap-3 px-5 py-4">
+    <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-3 px-5 py-4">
       {/* Переходы живут в нижней панели и под фигурой — в шапке они дублировались. */}
       <header className="text-center">
         <h1

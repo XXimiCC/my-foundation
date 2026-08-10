@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { FastingSkin } from '@/components/system/FastingSkin';
 import { VersionBadge } from '@/components/system/VersionBadge';
 import { Triquetra } from '@/components/triquetra/Triquetra';
+import type { Goal } from '@/lib/core/goal';
 import type { RitualCounts } from '@/lib/core/rituals';
 import { SHELL_LABEL, SHELLS, type Shell } from '@/lib/core/shells';
 import type { CoreState } from '@/lib/core/state';
@@ -44,11 +45,31 @@ const BLESSINGS: { kind: string; title: string; phrase: string }[] = [
   { kind: 'BODY', title: 'Тело', phrase: 'Благодарю тебя, Тело, за службу. Сила с Нами' },
 ];
 
+/**
+ * Подсказка, когда адаптивной нормы нет: у Духа она в тексте не названа —
+ * там «одно благое дело», а не минуты.
+ */
 const ACT_HINT: Record<Shell, string> = {
   BODY: 'через день, от 30 минут',
   MIND: 'каждый день, от 10 минут',
   SPIRIT: 'весь день: одно благое дело',
 };
+
+/**
+ * Норма на сегодня словами. «Всегда есть точка оптимальных усилий тут и
+ * сейчас» — после перерыва она мягче, после недели подряд выше, и человек
+ * должен видеть, почему цифра именно такая.
+ */
+function goalHint(goal: Goal): string {
+  switch (goal.trend) {
+    case 'минимум':
+      return `сегодня ${goal.target} минут — начать с малого`;
+    case 'рост':
+      return `сегодня ${goal.target} минут · цепь ${goal.streak}`;
+    default:
+      return `сегодня ${goal.target} минут`;
+  }
+}
 
 /**
  * Состояние Завета одной строкой. Ни одного числа сверх того, что отвечает на
@@ -68,6 +89,12 @@ function ritualStatus(key: string, counts: RitualCounts): string {
       return counts.post.active
         ? `день ${counts.post.day} из ${counts.post.total}`
         : 'не идёт';
+    case 'slovo':
+      return counts.slovo.complete
+        ? 'пройдено'
+        : counts.slovo.done > 0
+          ? `припомнено ${counts.slovo.done}`
+          : 'не начато';
     default:
       return '';
   }
@@ -76,10 +103,12 @@ function ritualStatus(key: string, counts: RitualCounts): string {
 export function Today({
   initial,
   rituals,
+  goals,
   name,
 }: {
   initial: CoreState;
   rituals: RitualCounts;
+  goals: Partial<Record<Shell, Goal>>;
   name: string | null;
 }) {
   const [state, setState] = useState(initial);
@@ -109,7 +138,7 @@ export function Today({
   const blessToday = new Set(state.today.blessings);
 
   return (
-    <main className="mx-auto flex h-full max-w-md flex-col gap-4 overflow-y-auto px-5 py-4">
+    <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
       {/* Пока идёт пост, интерфейс обесцвечен: приложение снижает собственную
           сенсорную награду наравне с прочими быстрыми удовольствиями. */}
       <FastingSkin active={rituals.post.active} />
@@ -168,7 +197,9 @@ export function Today({
                   </span>
                 </div>
                 <div className="text-[0.68rem] text-mute">
-                  {done > 0 ? `сегодня ${done}` : ACT_HINT[shell]}
+                  {done > 0
+                    ? `сегодня ${done}`
+                    : (goals[shell] ? goalHint(goals[shell]!) : ACT_HINT[shell])}
                 </div>
               </div>
               <button

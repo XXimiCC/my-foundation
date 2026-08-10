@@ -79,7 +79,7 @@ export function Post({ initial }: { initial: PostView }) {
   const today = active?.today;
 
   return (
-    <main className="mx-auto flex h-full max-w-md flex-col gap-6 overflow-y-auto px-5 py-6">
+    <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-6 overflow-y-auto px-5 py-6">
       <FastingSkin active={active !== null} />
 
       <header className="text-center">

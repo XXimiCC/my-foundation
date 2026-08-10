@@ -40,9 +40,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TelegramInit />
         <VersionGuard />
         {/* Колонка на всю высоту: панель прижата книзу, а содержимое получает
-            остаток. Иначе экран Триквестра с его h-dvh уезжал бы под панель. */}
+            остаток. Иначе экран Триквестра с его h-dvh уезжал бы под панель.
+
+            Вторая колонка внутри — чтобы экран мог растянуться на всю высоту
+            через flex-1. Процентная высота (h-full) у родителя, которому задан
+            только min-height, не разрешается: на коротких экранах подвал со
+            ссылкой «назад» повисал посреди страницы. */}
         <div className="flex min-h-dvh flex-col">
-          <div className="min-h-0 flex-1">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           <AppNav />
         </div>
       </body>

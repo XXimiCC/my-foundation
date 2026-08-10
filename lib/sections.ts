@@ -115,9 +115,9 @@ export const SECTIONS: Section[] = [
     key: 'slovo',
     title: 'Слово Дня',
     purpose: 'Припоминание 418 тезисов Канона с нарастающими интервалами.',
-    href: null,
-    state: 'впереди',
-    entry: 'нет',
+    href: '/slovo',
+    state: 'готово',
+    entry: 'ритуал',
     source: 'Основа 6. Познание',
   },
   {

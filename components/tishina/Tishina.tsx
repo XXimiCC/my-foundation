@@ -204,7 +204,7 @@ export function Tishina({ initial, levels }: { initial: DuhView; levels: Levels 
   // ── После практики ────────────────────────────────────────────────────
   if (phase.kind === 'done') {
     return (
-      <main className="mx-auto flex h-full max-w-md flex-col gap-5 overflow-y-auto px-5 py-10">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-5 overflow-y-auto px-5 py-10">
         <header className="text-center">
           <h1
             className="text-lg tracking-[0.4em] text-gold-200"
@@ -269,7 +269,7 @@ export function Tishina({ initial, levels }: { initial: DuhView; levels: Levels 
 
   // ── До практики ───────────────────────────────────────────────────────
   return (
-    <main className="mx-auto flex h-full max-w-md flex-col gap-6 overflow-y-auto px-5 py-6">
+    <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-6 overflow-y-auto px-5 py-6">
       <header className="text-center">
         <h1
           className="text-xl tracking-[0.4em] text-gold-200"

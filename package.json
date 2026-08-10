@@ -1,6 +1,6 @@
 {
   "name": "osnovanie",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "Основание — приложение для вживления Философии Основания",
   "scripts": {
@@ -26,7 +26,8 @@
     "check:duhdar": "tsx scripts/check-duh-dar.mts",
     "check:tishina": "tsx scripts/check-tishina.mts",
     "check:post": "tsx scripts/check-post.mts",
-    "check:fasting": "tsx scripts/check-fasting.mts"
+    "check:fasting": "tsx scripts/check-fasting.mts",
+    "check:slovo": "tsx scripts/check-slovo.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
