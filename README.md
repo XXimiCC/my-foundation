@@ -1,94 +1,106 @@
-# Основание
+# Osnovanie — «Основание», The Foundation
 
-Telegram-first приложение, которое превращает [Философию Основания](Философия%20Основания/Философия%20Основания.md) из текста в ежедневную практику: приносит ритуал в момент, когда он должен произойти, фиксирует его и показывает динамику Силы и Боли.
+*English version. Русская версия: [README.ru.md](README.ru.md).*
 
-Бот — основная точка входа: утренние и ночные ритуалы закрываются одним касанием прямо в чате. Mini App открывается для глубоких экранов: Декларация, Тишина, Пост, Канон, Свиток.
+**Who it is for.** For someone who wants to put their life in order and hold that order themselves, without a supervisor: to do daily what builds them up, and not do what tears them down. The app is private — it is not about competing with anyone and not about reporting to anyone.
 
-## Устройство
+It solves three problems.
 
-Ни одна механика не выдумана — каждая выведена из текста.
+**Discipline.** The day has a structure: a morning, an evening and a night ritual. The bot delivers each one inside its own window — not into a feed you have to open, but into a chat where the ritual is closed with a single tap. The daily quota adapts to how the person is actually doing: after missed days it drops to the minimum so there is something to start from, and on a steady streak it grows. Three shells — Body, Mind and Spirit — grow from action and decay from idleness, and overall Strength is computed so that pumping one shell and coasting on it is impossible.
 
-| Источник | Механика |
+**Restraint.** Part of the practice is *not* doing. The Fast sets an eating window and a set of prohibitions for a fixed term, and while it runs the interface desaturates itself to bone monochrome: the app cuts its own sensory reward instead of only demanding abstinence elsewhere. Tomorrow's Declaration passes through a validator that rejects items about idleness, consumption and pleasure. A lapse is recorded as experience and does not take away a level — there is no punishment here, only return.
+
+**Internalization.** The Philosophy of the Foundation is not a reference you read once. Its theses are broken into cards and come back through spaced repetition: a card shows the opening of a thesis and reveals the text only after an attempt to recall it; what is forgotten returns tomorrow, what is remembered returns ever more rarely. Alongside it, the Trace: a spiral of lived days where the brightness of each point is that day's Strength, plus a weekly Scroll. The point is for the text to stop being text and to become the thing a person acts from without deliberating.
+
+**What it looks like.** Telegram-first: the bot is the main entry point, and the morning and night rituals are closed right inside the chat. The Mini App opens for what does not fit in a chat: Declaration, Silence, Fast, Canon, Scroll, Trace. A session ends when the ritual is done — there is no infinite feed, by construction.
+
+The mechanics are derived from [the Philosophy of the Foundation](Философия%20Основания/Философия%20Основания.md) — an Obsidian vault kept in the repository (in Russian). The vault is also the data source for the Canon section: its texts are imported into the database and take part in spaced repetition. If you want to know *why* a mechanic works the way it does, the answer is there; what follows is *how* it is built.
+
+## Stack
+
+| Layer | What |
 |---|---|
-| «То что используем — развиваем, то что не используем — теряем» (Завет АКТ) | Уровень оболочки растёт от актов и распадается от простоя. Периоды буквальны: тело — через день, разум и дух — ежедневно. |
-| «Лезвие, ножны и рукоятка должны быть соразмерны» (Завет АКТ, Основа 3) | **Сила — гармоническое среднее** трёх уровней. При (90, 90, 10) она равна 24, при (63, 63, 63) — 63. Накачать одну оболочку и получить Силу нельзя. |
-| «Если ничего не делать, боль всегда растёт» (Догмат) | Боль — дефицит Силы плюс накопитель пассивности. |
-| «Найди свой самый слабый компонент и устрани отставание» (Основа 3) | Главный призыв всегда указывает на минимальную оболочку. |
-| «Всегда есть точка оптимальных усилий» (Основа 2, Основа 6) | Норма на день подстраивается: после трёх пропусков падает до минимума, после недели подряд растёт. Пропуски сильнее цепи — вернувшийся получает минимум, чтобы было с чего начать. |
-| «Я плохо проконтролировал мысли, эмоции или ситуацию» (Основа 5) | Срыв фиксируется как опыт и **не отнимает уровень**. |
-| «Нужно активно припоминать» (Основа 6) | Слово Дня: карточка показывает начало тезиса, текст раскрывается только после попытки вспомнить. Интервалы растут, забытое возвращается завтра. |
-| «Запрещено декларировать лень, потребление и удовольствие» (Завет ПУТЬ) | Валидатор Декларации отклоняет такие пункты и предлагает переформулировку. Выполненный пункт с оболочкой сразу засчитывается Актом — одно усилие не считается дважды. |
-| Догма Следа (Завет ПУТЬ) | След пройденного: спираль дней, где яркость точки — Сила того дня, и Свиток недели. |
-| «От 5 до 100 минут... три этапа» (Завет ДУХ, Основа 7) | Тишина: экран гаснет, остаётся вращающийся контур. Стадия выводится из прожитого времени — Сюжет, Озарение с восьмой минуты, Скука с двадцатой. |
-| «Каждую неделю делиться своими ресурсами» (Завет ДАР) | Приватный журнал: шесть видов ресурса. Недельная норма поднимает Дух, число записей — нет. |
-| «Приём пищи разрешён только в течении 8 часов» (Завет ПОСТ) | Дни Очищения и Месяц Искупления: окно еды, два запрета, дневниковые дни 8/15/22/29 и итоги по вопросам отчёта за 2024. Пока пост идёт, интерфейс обесцвечивается. |
+| App | Next.js 15 (App Router, RSC), React 19, TypeScript 5.9 |
+| Styling | Tailwind v4 (via `@tailwindcss/postcss`) |
+| Database | Neon Postgres, Prisma 6 (`DATABASE_URL` — pooler, `DIRECT_URL` — migrations) |
+| Auth | Telegram initData / Login Widget → own JWTs via `jose` |
+| Telegram | Bot API called directly with `fetch` — no wrapper library |
+| Tests | Vitest (unit), Playwright + sharp (visual checks) |
+| Hosting | Vercel, region `fra1` |
 
-### Триквестр
+Dependencies are kept deliberately few: in serverless every extra one adds to cold start. The Bot API wrapper is fifty own lines in [lib/bot/api.ts](lib/bot/api.ts), because exactly five methods are used.
 
-Визуальное ядро — не логотип, а прибор. Три лепестка суть Дух, Разум и Тело; они заливаются золотом **от вершины к центру**. Общая зона всех трёх лепестков заполняется последней, поэтому **ядро загорается только при триединении**. Это не метафора в интерфейсе, а следствие геометрии.
+## Architecture
 
-Построение точное: три окружности радиуса `R = 1` с центрами на радиусе `D = 0.86`. Условие `R > D` обязательно — именно оно уводит внутренний конец лепестка за центр и создаёт ядро. Все координаты выводятся в [geometry.ts](components/triquetra/geometry.ts) и покрыты тестами.
+**There is no worker.** Vercel has no long-lived process, so the schedule is an HTTP endpoint — [app/api/cron/rituals/route.ts](app/api/cron/rituals/route.ts) — pinged every 15 minutes by an external service (cron-job.org) passing `CRON_SECRET`. One tick does two things: it lays the ritual windows that have come due into a queue, and it sends whatever is sitting in that queue.
 
-### Чего в приложении нет намеренно
+**The queue is a table.** `OutboxMessage` with a unique `dedupeKey`: overlapping ticks physically cannot send a ritual twice. Missed windows are not replayed later. Queue state is inspected with `npm run outbox`.
 
-Это доктринальные запреты, а не недоделки:
+**The bot is webhook-only.** There is no polling (there would be nobody to poll). Incoming updates are handled by [app/api/bot/route.ts](app/api/bot/route.ts), with the signature verified against `X-Telegram-Bot-Api-Secret-Token`. The webhook is bound with `npm run bot:webhook -- set`.
 
-- **Лидербордов и сравнения с другими** — «мы оцениваем свой прогресс завтра относительно себя сегодня» (Основа 1).
-- **Шеринга Деклараций и Даров** — «никому не рассказывайте о своих намерениях» (Завет ПУТЬ), «не хвастайся благими деяниями» (Завет ДАР).
-- **Планирования Даров** — «не обещай благие деяния, ибо обещание создаёт обязательство» (Завет ДАР). Записать можно только уже совершённое.
-- **Бесконечных лент** — сессия заканчивается, когда ритуал выполнен, иначе приложение нарушает Завет ПОСТ.
-- **Наказаний и потери очков** — Основа 5.
-- **Частых уведомлений** — приложение не имеет права быть источником стресса (Основа 4).
+**Two entrances, one account.** The Mini App sends `initData`, the browser sends a Login Widget payload; the two use different signing schemes (see [lib/auth/telegram.ts](lib/auth/telegram.ts)) but resolve to the same user. A session is a short access JWT (15 min) plus a long rotating refresh token; the access token is accepted both from a cookie and from `Authorization`, because inside the Telegram webview third-party cookies may be blocked.
 
-В режиме Поста интерфейс намеренно обесцвечивается до костяного монохрома: приложение снижает собственную сенсорную награду, пока идёт завет.
+**Domain logic is separate from screens.** Everything that computes state — shell levels, Strength as a harmonic mean, Pain, the daily quota, repetition intervals — lives in `lib/core/` as pure functions covered by unit tests. API routes only read the database, call those functions and write the result back.
 
-## Стек
-
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4 · Prisma 6 · Neon Postgres · grammY · Vercel.
-
-Serverless накладывает ограничения: воркера нет, планировщик — эндпоинт `/api/cron/rituals`, который дёргает cron-job.org каждые 15 минут; очередь — таблица `OutboxMessage` с `dedupeKey`, чтобы ритуал не пришёл дважды; бот работает только через webhook (`npm run bot:webhook -- set`).
-
-## Структура
+## Layout
 
 ```
-app/                     экраны и API-роуты
-components/triquetra/    SVG-движок Триквестра
-lib/core/                доменная логика: оболочки, Сила, Боль, SRS
-lib/canon/               разбор хранилища в Канон
-prisma/schema.prisma     модель данных
-scripts/                 служебные утилиты
-Философия Основания/     исходное хранилище Obsidian
+app/                     screens (RSC) and API routes
+  api/                   akt, blago, put, dar, tishina, post, slovo,
+                         settings, osnashenie, auth, bot, cron, health, version
+components/
+  triquetra/             the Triquetra SVG engine — geometry and fill
+  <section>/             client components for the matching screens
+lib/
+  core/                  domain logic: shells, Strength/Pain, scheduling, SRS
+  canon/                 parsing the Obsidian vault into the Canon, links, relevance
+  auth/                  Telegram signature verification, sessions
+  bot/                   Bot API and message copy
+  sections.ts            the section map — source for the bottom bar and «Sections»
+prisma/schema.prisma     data model
+scripts/                 maintenance scripts (see below)
+Философия Основания/     the source Obsidian vault
+docs/                    work plan and the deliberately-deferred list (in Russian)
 ```
 
-## Запуск
+Routes and domain terms are transliterated Russian: `akt` — Act, `blago` — Blessing, `put` — Path (the Declaration), `dar` — Gift, `tishina` — Silence, `post` — Fast, `slovo` — Word of the Day, `osnashenie` — Equipping, `kanon` — Canon, `razdely` — Sections, `nastroyki` — Settings.
+
+The Triquetra ([components/triquetra/geometry.ts](components/triquetra/geometry.ts)) is not a picture but a computed instrument: three circles of radius `R = 1` with centres on a radius of `D = 0.86`. The condition `R > D` is mandatory — it pushes the inner end of each petal past the centre and creates the shared core. The coordinates are derived in code and covered by tests.
+
+## Getting started
 
 ```bash
-npm install
-cp .env.example .env      # заполнить строки подключения Neon и токен бота
+npm install                 # postinstall runs prisma generate for you
+cp .env.example .env        # fill in Neon, the bot token, JWT_SECRET, CRON_SECRET
 npx prisma migrate dev
+npm run canon:import        # load the Canon from the vault into the DB (idempotent)
 npm run dev
 ```
 
-| Команда | Что делает |
+The minimum for local work is `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`. The Telegram variables are only needed if you are touching the bot or sign-in; `NEXT_PUBLIC_APP_URL` over http is allowed for localhost only — Telegram requires HTTPS.
+
+Running the bot locally needs a public HTTPS tunnel: `npm run bot:webhook -- set https://<tunnel>`. With no arguments, `npm run bot:webhook` reports whose token this is and where the webhook currently points.
+
+The `.githooks/pre-commit` hook bumps the patch version in `package.json` on every commit (the version is shown at the bottom of the app). Enable it once: `git config core.hooksPath .githooks`.
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| `npm test` | тесты геометрии, доменной логики и разбора Канона |
-| `npm run canon:report` | состав Канона, объём тезисов, битые ссылки |
-| `npm run typecheck` | проверка типов |
+| `npm run dev` / `build` / `start` | the usual Next.js cycle |
+| `npm test` | 282 unit tests: geometry, domain logic, Canon parsing |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run db:push` | `prisma migrate dev` — migrate the dev database |
+| `npm run db:migrate` | `prisma migrate deploy` — migrate production |
+| `npm run canon:import` | import the vault into the database |
+| `npm run canon:report` | Canon contents, thesis volume, broken links |
+| `npm run outbox [-- days]` | what was sent, what is stuck, what it tripped on |
+| `npm run bot:webhook -- [info\|set\|delete] [url]` | webhook status and binding |
+| `npm run check:* -- <url>` | end-to-end checks in a real browser |
+| `npm run shot -- <url> <file.png>` | screenshot a screen |
 
-## Состояние
+`check:*` are Playwright checks run against a live app, one per section (`fill`, `artifact`, `zavety`, `put`, `sled`, `duhdar`, `tishina`, `post`, `fasting`, `slovo`, `cron`, `bot`, `settings`, `osnashenie`). They catch a class of bug unit tests cannot: the Triquetra fill math can be correct while what breaks is the coordinate system a browser resolves `<mask>` contents in. These checks look at pixels.
 
-Версия видна внизу экрана. Карта разделов — на странице «Разделы» в приложении, она строится из [lib/sections.ts](lib/sections.ts).
+## Status and what's next
 
-**Работает.** Триквестр на живых данных: уровни, Сила, Боль, слабое звено. Канон целиком — 22 документа, 203 секции, 418 тезисов, со ссылками и якорями. Оснащение: десять Основ по одной, Договор Консенсуса, ранг Предтечи. **Все шесть Заветов**: АКТ и БЛАГ закрываются одним касанием; ПУТЬ замкнут вечер→утро — Декларация на завтра с валидатором, чек-лист сегодняшней, След и Свиток недели; ДУХ — практика Тишины на три стадии с записью озарений; ДАР — приватный журнал недели; ПОСТ — Дни Очищения и Месяц Искупления с окном еды, дневником и итогами. Вход через Telegram — из Mini App и из браузера, в один аккаунт.
-
-Слово Дня припоминает 418 тезисов Канона с нарастающими интервалами, а норма дня подстраивается под силы.
-
-Бот приносит ритуал в срок: утром благодарение и Слово Дня, вечером Декларация на завтра, ночью закрытие дня. Благо и Акт закрываются кнопкой прямо в чате, тезис Разума принимается ответом своими словами. Окна считаются в часах человека, с тихими часами; просроченное не догоняется, а повтор невозможен по ключу идемпотентности.
-
-Часы ритуального дня, тихие часы, интенсивность и часовой пояс правятся на экране настроек: окно, попавшее в тихие часы, не сохраняется — оно не сработало бы ни разу.
-
-**Дальше.** Что не сделано осознанно и почему — в [docs/vperedi.md](docs/vperedi.md).
-
-**Отложено осознанно.** Админка Канона — импорт идемпотентен, правки пока переливаются из хранилища. Бот и уведомления — самостоятельный контур, вынесен в отдельную фазу; требует вебхука и решения по cron.
-
-Порядок работ, принятые решения и риски — в [docs/plan.md](docs/plan.md).
+The section map and the state of each section live on the «Sections» page in the app, built from [lib/sections.ts](lib/sections.ts). The order of work, the decisions taken and the risks are in [docs/plan.md](docs/plan.md); what has been deliberately left undone, and why, is in [docs/vperedi.md](docs/vperedi.md). Both documents are in Russian.
