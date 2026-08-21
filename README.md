@@ -104,3 +104,11 @@ The `.githooks/pre-commit` hook bumps the patch version in `package.json` on eve
 ## Status and what's next
 
 The section map and the state of each section live on the «Sections» page in the app, built from [lib/sections.ts](lib/sections.ts). The order of work, the decisions taken and the risks are in [docs/plan.md](docs/plan.md); what has been deliberately left undone, and why, is in [docs/vperedi.md](docs/vperedi.md). Both documents are in Russian.
+
+## Source of the philosophy
+
+The Philosophy of the Foundation comes from the YouTube channel **[@osnovanie_life](https://www.youtube.com/@osnovanie_life)** — that is the primary source. The Obsidian vault in this repository is its written form; the app is a way to practise it daily.
+
+## License
+
+The code is under the [MIT License](LICENSE). The texts of the philosophy in [Философия Основания/](Философия%20Основания/) belong to the author of the philosophy and are not covered by it.
